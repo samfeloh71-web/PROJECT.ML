@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h3>Financial Trends</h3>
+
+    <div class="card shadow mt-3">
+        <div class="card-body">
+            {{ chart_html|safe }}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Customer Segmentation - Overview{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <h1 class="mb-4">Overview Analysis</h1>
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% else %}
+                {% if raw_data is not none and not raw_data.empty %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Raw Data</h5>
+                            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                                {{ raw_data.to_html(classes='table table-bordered table-striped table-hover', index=True, table_id='raw-data-table') | safe }}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No raw data available.</p>
+                {% endif %}
+            {% endif %}
+            <div class="text-center mt-4">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Upload</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('raw-data-table');
+            if (table) {
+                // Adjust column widths dynamically based on content
+                const thElements = table.getElementsByTagName('th');
+                for (let th of thElements) {
+                    th.style.minWidth = '150px'; // Minimum width for readability
+                    th.style.maxWidth = '300px'; // Prevent overly wide columns
+                }
+
+                // Ensure table headers stay visible on scroll
+                table.style.display = 'block'; // Override default table display
+            }
+        });
+    </script>
+{% endblock %}

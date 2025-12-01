@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}CUSTOMER SEGMENTATION - Predictive Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">
+        Predictive Analysis
+    </h1>
+    <p class="text-center text-white-50 mb-4 lead">
+        Predictive analysis based on historical data.
+    </p>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    <!-- 🔽 Month Filter -->
+    <form method="GET" action="{{ url_for('predictive_analysis') }}" class="text-center mb-4">
+        <label for="month" class="text-white me-2">Filter by Month:</label>
+        <select name="month" id="month" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
+            <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All</option>
+            {% for month in month_list %}
+                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if pie_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Spending Share by Month</h5>
+                <div>{{ pie_chart | safe }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if line_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Predicted Trends Over Time</h5>
+                <div>{{ line_chart | safe }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if bar_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Predicted Monetary Value by Period</h5>
+                <div>{{ bar_chart | safe }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if predictive_analysis_results is not none and not predictive_analysis_results.empty %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body">
+                <h5 class="card-title text-white text-center">Predictive Analysis Results</h5>
+
+                <div class="text-center mb-3">
+                    {% if download_link %}
+                        <a href="{{ download_link }}" class="btn btn-success">⬇️ Download Predictive Analysis CSV</a>
+                    {% endif %}
+                </div>
+
+                <div class="table-responsive">
+                    {{ predictive_analysis_results.to_html(classes='table table-bordered table-striped table-hover display', index=False, table_id='predictiveTable') | safe }}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center">
+            No predictive analysis results available. Please upload a valid CSV with a Date or PurchaseDate column.
+        </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
+    </div>
+</div>
+
+<!-- ✅ DataTables Scripts -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#predictiveTable').DataTable({
+        pageLength: 10,
+        lengthChange: true,
+        searching: true,
+        ordering: true,
+        order: [[0, 'asc']]
+    });
+});
+</script>
+{% endblock %}

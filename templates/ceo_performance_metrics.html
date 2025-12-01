@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h3>Performance Metrics</h3>
+
+    <div class="card shadow mt-3">
+        <div class="card-body">
+            <ul>
+                <li>Average Order Value: ${{ metrics.avg_order_value }}</li>
+                <li>Purchase Frequency: {{ metrics.purchase_frequency }}</li>
+                <li>Customer Retention Score: {{ metrics.customer_retention }}</li>
+                <li>Top Product: {{ metrics.top_product }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

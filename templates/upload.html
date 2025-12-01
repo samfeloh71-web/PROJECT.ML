@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}CUSTOMER SEGMENTATION - Dashboard{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">CUSTOMER SEGMENTATION</h1>
+    <p class="text-center text-white-50 mb-5 lead">AI-Driven Customer Segmentation Analysis</p>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 g-4 justify-content-center">
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-chart-bar"></i>
+                    <h5 class="card-title text-white">RFM Analysis</h5>
+                    <p class="card-text text-white-50">Segment customers based on Recency, Frequency, and Monetary value to identify high-value segments and optimize marketing strategies.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-users"></i>
+                    <h5 class="card-title text-white">Behavioral Segmentation</h5>
+                    <p class="card-text text-white-50">Analyze purchase history and engagement to group customers by behavior, enabling personalized campaigns.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-brain"></i>
+                    <h5 class="card-title text-white">Predictive Analytics</h5>
+                    <p class="card-text text-white-50">Leverage machine learning to predict future customer actions, such as purchases or churn, with high accuracy.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-box"></i>
+                    <h5 class="card-title text-white">Product Preference</h5>
+                    <p class="card-text text-white-50">Identify customer preferences for product categories to tailor inventory and promotions effectively.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-user"></i>
+                    <h5 class="card-title text-white">Demographic Analysis</h5>
+                    <p class="card-text text-white-50">Examine demographic data (age, gender, income) to uncover trends and target specific audience segments.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-dollar-sign"></i>
+                    <h5 class="card-title text-white">Customer Lifetime Value (CLV)</h5>
+                    <p class="card-text text-white-50">Calculate the projected revenue from a customer over their lifetime to prioritize high-value relationships.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-exclamation-triangle"></i>
+                    <h5 class="card-title text-white">Churn Prediction</h5>
+                    <p class="card-text text-white-50">Predict which customers are likely to leave and implement retention strategies to reduce churn rates.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card analysis-card h-100">
+                <div class="card-body text-center">
+                    <i class="card-icon fas fa-map-marker"></i>
+                    <h5 class="card-title text-white">Geographic Segmentation</h5>
+                    <p class="card-text text-white-50">Segment customers by location to design region-specific marketing and distribution plans.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

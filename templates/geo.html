@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}CUSTOMER SEGMENTATION - Geographic Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">Geographic Analysis</h1>
+    <p class="text-center text-white-50 mb-5 lead">Geographic distribution analysis.</p>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    {% if geo_summary %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-white bg-dark">
+                <h5 class="card-title text-center">Geo Summary</h5>
+                <ul class="list-group list-group-flush">
+                    {% for key, value in geo_summary.items() %}
+                        <li class="list-group-item bg-dark text-white">{{ key }}: {{ value }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if geo_pie_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Customer Distribution by Region</h5>
+                <div>{{ geo_pie_chart | safe }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if geo_bar_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Average Spending by Region</h5>
+                <div>{{ geo_bar_chart | safe }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if geo_line_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Spending Trend Over Time</h5>
+                <div>{{ geo_line_chart | safe }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if geo_results is not none %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Geographic Results Table</h5>
+                <div>{{ geo_results.to_html(classes='table table-bordered table-striped table-hover', index=False) | safe }}</div>
+            </div>
+        </div>
+
+        {% if output_file %}
+            <div class="text-center mb-4">
+                <a href="{{ url_for('download_geo', filename=output_file) }}" class="btn btn-success">Download Geo CSV</a>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-warning text-center">No geographic results available. Please upload a valid CSV with 'Region' and 'Spending_Score' columns.</div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
+    </div>
+</div>
+{% endblock %}

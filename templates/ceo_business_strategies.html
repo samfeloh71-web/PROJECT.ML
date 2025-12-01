@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h3>Business Strategies Overview</h3>
+
+    <div class="card shadow mt-3">
+        <div class="card-body">
+            <h5>Key Insights</h5>
+            <ul>
+                <li>Revenue: ${{ insights.revenue }}</li>
+                <li>Customers: {{ insights.customers }}</li>
+                <li>Orders: {{ insights.orders }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card shadow mt-4">
+        <div class="card-body">
+            <h5>Recommended Strategies</h5>
+            <pre>{{ strategy }}</pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

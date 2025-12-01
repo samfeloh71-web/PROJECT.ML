@@ -1,0 +1,10 @@
+.env
+.env.secret
+__pycache__/
+*.pyc
+outputs/
+uploads/
+users.json
+.env.local
+.vscode/
+.DS_Store

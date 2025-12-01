@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}CUSTOMER SEGMENTATION - Results{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">Results</h1>
+    <p class="text-center text-white-50 mb-4 lead">Summary of all analysis results.</p>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    <!-- 🔽 Month Filter -->
+    <form method="GET" action="{{ url_for('results') }}" class="text-center mb-4">
+        <label for="month" class="text-white me-2">Filter by Month:</label>
+        <select name="month" id="month" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
+            <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All</option>
+            {% for month in month_list %}
+                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <!-- 📋 Results Summary -->
+    {% if results_summary %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-white">Results Summary</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <tbody>
+                        <tr>
+                            <th>Total Customers</th>
+                            <td>{{ results_summary.total_customers }}</td>
+                        </tr>
+                        <tr>
+                            <th>Average Spending Score</th>
+                            <td>{{ results_summary.avg_spending }}</td>
+                        </tr>
+                        <tr>
+                            <th>Average Annual Income</th>
+                            <td>${{ results_summary.avg_income }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+
+    <!-- 📊 Charts -->
+    {% if combined_charts %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body">
+                <h5 class="card-title text-white text-center">Visual Charts</h5>
+                {% for title, chart in combined_charts.items() %}
+                    <div class="mb-4">
+                        <h6 class="text-white text-center">{{ title }}</h6>
+                        {{ chart | safe }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- 📑 Detailed Table -->
+    {% if detailed_results is not none and not detailed_results.empty %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body">
+                <h5 class="card-title text-white text-center">Detailed Results</h5>
+                <div class="table-responsive">
+                    <table id="detailedResultsTable" class="table table-bordered table-striped display">
+                        <thead>
+                            <tr>
+                                {% for col in detailed_results.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in detailed_results.values %}
+                                <tr>
+                                    {% for cell in row %}
+                                        <td>{{ cell }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ⬇️ Download -->
+        {% if output_file %}
+        <div class="text-center mb-4">
+            <a href="{{ url_for('download_results', filename=output_file) }}" class="btn btn-success">⬇️ Download Results CSV</a>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-warning text-center">No detailed results available.</div>
+    {% endif %}
+
+    <!-- 🔁 Navigation -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
+    </div>
+</div>
+
+<!-- ✅ DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#detailedResultsTable').DataTable({
+            pageLength: 10,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            order: [[0, 'asc']]
+        });
+    });
+</script>
+{% endblock %}

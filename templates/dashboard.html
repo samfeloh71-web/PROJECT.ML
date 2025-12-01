@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ role }}{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-card {
+        border-radius: 18px;
+        transition: 0.25s;
+        cursor: pointer;
+        padding: 20px;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    }
+    .card-title-small {
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        opacity: 0.75;
+    }
+    .main-btn {
+        border-radius: 10px;
+        font-weight: 600;
+        margin-top: 10px;
+        padding: 6px 14px;
+    }
+    .welcome-banner {
+        border-radius: 20px;
+        padding: 40px;
+        background: linear-gradient(135deg, #0d6efd, #4e9efc);
+    }
+</style>
+
+<div class="container-fluid py-4">
+
+    <!-- Welcome Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-banner text-white shadow-lg">
+                <h2 class="fw-bold mb-1">Welcome, {{ user }}</h2>
+                <p class="mb-0">
+                    <strong>Role:</strong> {{ role }} &nbsp; | &nbsp;
+                    <strong>Login Time:</strong> {{ login_time }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if role == 'CEO' %}
+    <!-- ✅ CEO Professional Dashboard -->
+    <div class="row">
+
+        <!-- Business Strategies -->
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#e8f1ff;">
+                <div class="card-body">
+                    <div class="card-title-small text-primary">Business Strategies</div>
+                    <h5 class="fw-bold text-dark">Solutions</h5>
+                    <a href="{{ url_for('ceo_business_strategies') }}" 
+                       class="btn btn-primary main-btn">Generate Ai-strategies</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Trends -->
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#eafaf0;">
+                <div class="card-body">
+                    <div class="card-title-small text-success">Financial Trends</div>
+                    <h5 class="fw-bold text-dark">Analytics</h5>
+                    <a href="{{ url_for('ceo_financial_trends') }}" 
+                       class="btn btn-success main-btn">Generate Ai-Trends</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#e7f7fb;">
+                <div class="card-body">
+                    <div class="card-title-small text-info">Performance Metrics</div>
+                    <h5 class="fw-bold text-dark">Reports</h5>
+                    <a href="{{ url_for('ceo_performance_metrics') }}" 
+                       class="btn btn-info main-btn">Generate Ai-Metrics</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {% else %}
+    <!-- ✅ Company Analyst Dashboard (Improved UI) -->
+    <div class="row">
+
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#e8f1ff;">
+                <div class="card-body">
+                    <div class="card-title-small text-primary">RFM Analysis</div>
+                    <h5 class="fw-bold text-dark">Customer Value</h5>
+                    <a href="{{ url_for('rfm_analysis') }}" class="btn btn-primary main-btn">View</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#eafaf0;">
+                <div class="card-body">
+                    <div class="card-title-small text-success">CLV Analysis</div>
+                    <h5 class="fw-bold text-dark">Lifetime Value</h5>
+                    <a href="{{ url_for('clv_analysis') }}" class="btn btn-success main-btn">View</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#e7f7fb;">
+                <div class="card-body">
+                    <div class="card-title-small text-info">Churn Analysis</div>
+                    <h5 class="fw-bold text-dark">Retention Risks</h5>
+                    <a href="{{ url_for('churn_analysis') }}" class="btn btn-info main-btn">View</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card dashboard-card shadow border-0" style="background:#fff7e6;">
+                <div class="card-body">
+                    <div class="card-title-small text-warning">Demographics</div>
+                    <h5 class="fw-bold text-dark">Customer Profiles</h5>
+                    <a href="{{ url_for('demographic_trends_analysis') }}" 
+                       class="btn btn-warning main-btn">View</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+    <!-- ✅ File Upload Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-lg border-0" style="border-radius:18px;">
+                <div class="card-header bg-white border-0">
+                    <h5 class="fw-bold mb-0">Upload Dataset</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('home') }}" enctype="multipart/form-data">
+                        <div class="input-group">
+                            <input type="file" class="form-control" name="file" accept=".csv" required>
+                            <button class="btn btn-dark" type="submit" style="border-radius:10px;">
+                                Upload File
+                            </button>
+                        </div>
+                        <p class="mt-2 text-muted small">Accepted format: CSV only</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Customer Segmentation - Product Preference{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">Product Preference Analysis</h1>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    {% if pie_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Product Category Distribution</h5>
+                {{ pie_chart | safe }}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if bar_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Average Spending Score by Product Category</h5>
+                {{ bar_chart | safe }}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if line_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Monthly Product Orders Over Time</h5>
+                {{ line_chart | safe }}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if pref_results is not none and not pref_results.empty %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Preference Results</h5>
+                {{ pref_results.to_html(classes='table table-bordered table-striped table-hover', index=False) | safe }}
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center">No preference results available.</div>
+    {% endif %}
+
+    {% if segment_summary %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Product Preference Summary</h5>
+                <ul class="list-group">
+                    {% for key, value in segment_summary.items() %}
+                        <li class="list-group-item bg-dark text-white">{{ key }}: {{ value }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends 'base.html' %} 
+{% block title %}CUSTOMER SEGMENTATION - RFM Analysis{% endblock %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">RFM Analysis</h1>
+    <p class="text-center text-white">Recency, Frequency, and Monetary value analysis of customers.</p>
+
+    <!-- 🔽 Segment Filter Dropdown -->
+    {% if table %}
+    <form method="GET" action="{{ url_for('rfm_analysis') }}" id="segment-form">
+        <div class="text-center mb-3">
+            <label for="segment" class="text-white me-2">Filter by Segment:</label>
+            <select name="segment" id="segment" onchange="submitWithDate()" class="form-select d-inline-block" style="max-width: 250px;">
+                {% for seg in ['All', 'Champions', 'Loyal Customers', 'Frequent Buyers', 'Big Spenders', 'At Risk', 'Others'] %}
+                    <option value="{{ seg }}" {% if selected_segment == seg %}selected{% endif %}>{{ seg }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- 🔄 Analysis Date Form (Preserves segment filter in action URL) -->
+    <form method="POST" action="{{ url_for('rfm_analysis', segment=selected_segment) }}" id="date-form">
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Select Analysis Date:</h5>
+                <input type="date" name="analysis_date" id="analysis_date" class="form-control mb-2" style="max-width: 300px; margin: 0 auto;" value="{{ analysis_date|default('') }}">
+                <button type="submit" class="btn btn-primary">Analyze</button>
+            </div>
+        </div>
+    </form>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    {% if pie_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">RFM Segment Distribution</h5>
+                {{ pie_chart | safe }}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if bar_chart %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title text-white">Average Monetary Value by Segment</h5>
+                {{ bar_chart | safe }}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if table %}
+        <div class="card analysis-card mb-4">
+            <div class="card-body">
+                <h5 class="card-title text-white text-center">RFM Data Table (Filtered)</h5>
+
+                <!-- ✅ CSV Download Button -->
+                <div class="text-center mb-3">
+                    <a href="{{ download_link }}" download class="btn btn-success">
+                        ⬇️ Download Full RFM CSV
+                    </a>
+                </div>
+
+                <!-- ✅ Responsive Table -->
+                <div class="table-responsive">
+                    {{ table | safe }}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if not pie_chart and not bar_chart and not table and not error %}
+        <div class="alert alert-info text-center">Please submit the form to view RFM analysis results.</div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Upload</a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary mx-2">Back to Overview</a>
+        <a href="{{ url_for('demographic_trends_analysis') }}" class="btn btn-secondary">Demographic Analysis</a>
+    </div>
+</div>
+
+<!-- ✅ DataTables Styling and Script -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#rfmTable').DataTable({
+            pageLength: 10,
+            lengthChange: true,
+            searching: true,
+            ordering: true
+        });
+    });
+
+    function submitWithDate() {
+        const selectedDate = document.getElementById('analysis_date').value;
+        const selectedSegment = document.getElementById('segment').value;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `?segment=${selectedSegment}`;
+
+        const dateInput = document.createElement('input');
+        dateInput.type = 'hidden';
+        dateInput.name = 'analysis_date';
+        dateInput.value = selectedDate;
+
+        form.appendChild(dateInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+{% endblock %}

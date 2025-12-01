@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}CUSTOMER SEGMENTATION - Customer Lifetime Value{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">
+        Customer Lifetime Value (CLV)
+    </h1>
+    <p class="text-center text-white-50 mb-4 lead">
+        Comprehensive analysis of customer lifetime value, clustering and quartile segmentation.
+    </p>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    <!-- 🔽 Segment Filter -->
+    <form method="GET" action="{{ url_for('clv_analysis') }}" class="text-center mb-4">
+        <label for="segment" class="text-white me-2">Filter by CLV Quartile:</label>
+        <select name="segment" id="segment" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
+            {% for seg in ['All', 'Q1 - Lowest', 'Q2 - Low-Mid', 'Q3 - High-Mid', 'Q4 - Highest'] %}
+                <option value="{{ seg }}" {% if request.args.get('segment') == seg %}selected{% endif %}>{{ seg }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if pie_chart %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-white">CLV Bracket Distribution</h5>
+            {{ pie_chart | safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if bar_chart %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-white">Top 10 Customers by CLV</h5>
+            {{ bar_chart | safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if line_chart %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-white">CLV Accumulation Over Time</h5>
+            {{ line_chart | safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if scatter_plot %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-white">CLV vs Frequency (Order Count)</h5>
+            {{ scatter_plot | safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if clv_summary %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-white">CLV Summary</h5>
+            <ul class="list-group list-group-flush">
+                {% for key, value in clv_summary.items() %}
+                <li class="list-group-item bg-dark text-white d-flex justify-content-between">
+                    <strong>{{ key }}</strong>
+                    <span>{{ value }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if clv_results is not none and not clv_results.empty %}
+    <div class="card analysis-card mb-4">
+        <div class="card-body">
+            <h5 class="card-title text-white text-center">CLV Results Table</h5>
+
+            <div class="text-center mb-3">
+                <a href="{{ download_link }}" download class="btn btn-success">
+                    ⬇️ Download Filtered CLV CSV
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                {{ clv_results.to_html(classes='table table-bordered table-striped table-hover display', index=False, table_id='clvTable') | safe }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
+    </div>
+</div>
+
+<!-- ✅ DataTables Scripts -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#clvTable').DataTable({
+        pageLength: 10,
+        lengthChange: true,
+        searching: true,
+        ordering: true,
+        order: [[2, 'desc']]  // Adjust index if CLV column is not at index 2
+    });
+});
+</script>
+{% endblock %}
