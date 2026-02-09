@@ -59,8 +59,7 @@
                 <div class="card-body">
                     <div class="card-title-small text-primary">Business Strategies</div>
                     <h5 class="fw-bold text-dark">Solutions</h5>
-                    <a href="{{ url_for('ceo_business_strategies') }}" 
-                       class="btn btn-primary main-btn">Generate Ai-strategies</a>
+                    <button class="btn btn-primary main-btn" onclick="triggerStrategyChat()">Generate Ai-strategies</button>
                 </div>
             </div>
         </div>
@@ -163,3 +162,66 @@
 
 </div>
 {% endblock %}
+
+<script>
+// ✅ Trigger Strategy Chat - Opens chat bubble and sends strategy request
+function triggerStrategyChat() {
+    // Open chat window
+    const chatWindow = document.getElementById('chat-window');
+    const chatBubble = document.getElementById('chat-bubble');
+    
+    if (chatWindow && chatBubble) {
+        chatWindow.style.display = 'flex';
+        
+        // Focus on input and set strategy question
+        setTimeout(() => {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.value = "What strategies should I implement based on my customer data?";
+                chatInput.focus();
+                
+                // Auto-send after a brief delay
+                setTimeout(() => {
+                    sendChatMessage();
+                }, 300);
+            }
+        }, 100);
+    }
+}
+
+// ✅ Trigger CLV Explanation Chat
+function triggerCLVChat() {
+    const chatWindow = document.getElementById('chat-window');
+    if (chatWindow) {
+        chatWindow.style.display = 'flex';
+        setTimeout(() => {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.value = "Explain the CLV results in simple terms.";
+                chatInput.focus();
+                setTimeout(() => {
+                    sendChatMessage();
+                }, 300);
+            }
+        }, 100);
+    }
+}
+
+// ✅ Trigger Financial Trends Chat
+function triggerTrendsChat() {
+    const chatWindow = document.getElementById('chat-window');
+    if (chatWindow) {
+        chatWindow.style.display = 'flex';
+        setTimeout(() => {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.value = "Explain the financial trends and revenue opportunities.";
+                chatInput.focus();
+                setTimeout(() => {
+                    sendChatMessage();
+                }, 300);
+            }
+        }, 100);
+    }
+}
+</script>

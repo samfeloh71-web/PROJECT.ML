@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}CUSTOMER SEGMENTATION - Results{% endblock %}
+{% block title %}MARKET LENS - Results{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -7,8 +7,18 @@
     <p class="text-center text-white-50 mb-4 lead">Summary of all analysis results.</p>
 
     {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
+        <div class="alert alert-warning text-center" style="background-color: rgba(255, 193, 7, 0.2); border: 2px solid #ffc107;">
+            <h5 class="text-white">⚠️ {{ error }}</h5>
+            <p class="text-white-50 mt-2">Please upload a CSV file to see results.</p>
+            <a href="{{ url_for('home') }}" class="btn btn-primary mt-2">📤 Upload Data</a>
+        </div>
+    {% elif not results_summary and not combined_charts %}
+        <div class="alert alert-info text-center" style="background-color: rgba(13, 110, 253, 0.2); border: 2px solid #0d6efd;">
+            <h5 class="text-white">📊 No Data Available</h5>
+            <p class="text-white-50 mt-2">Upload a CSV file to generate analysis results.</p>
+            <a href="{{ url_for('home') }}" class="btn btn-primary mt-2">📤 Upload Data</a>
+        </div>
+    {% else %}
 
     <!-- 🔽 Month Filter -->
     <form method="GET" action="{{ url_for('results') }}" class="text-center mb-4">
@@ -47,7 +57,6 @@
         </div>
     </div>
     {% endif %}
-
 
     <!-- 📊 Charts -->
     {% if combined_charts %}
@@ -106,6 +115,8 @@
     <div class="text-center mt-4">
         <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
     </div>
+
+    {% endif %}
 </div>
 
 <!-- ✅ DataTables -->
@@ -114,13 +125,15 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready(function () {
-        $('#detailedResultsTable').DataTable({
-            pageLength: 10,
-            lengthChange: true,
-            searching: true,
-            ordering: true,
-            order: [[0, 'asc']]
-        });
+        if ($('#detailedResultsTable').length) {
+            $('#detailedResultsTable').DataTable({
+                pageLength: 10,
+                lengthChange: true,
+                searching: true,
+                ordering: true,
+                order: [[0, 'asc']]
+            });
+        }
     });
 </script>
 {% endblock %}

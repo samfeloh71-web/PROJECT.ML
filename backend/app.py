@@ -1,10 +1,28 @@
-from dotenv import load_dotenv
-load_dotenv()  # Load environment variables from .env file
-# Load optional secret env file (gitignored)
 import os
-secret_env = os.path.join(os.path.dirname(__file__), '.env.secret')
+from dotenv import load_dotenv
+
+# ✅ Set up backend directory path FIRST (before using it)
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(backend_dir)
+
+# 1. Load the key from your .env file
+load_dotenv()  # Load environment variables from .env file
+api_key = os.getenv("GOOGLE_API_KEY")
+
+# Load optional secret env file (gitignored)
+secret_env = os.path.join(backend_dir, '.env.secret')
 if os.path.exists(secret_env):
     load_dotenv(secret_env)
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+# 2. Initialize the Gemini "Brain" with Customer Care Persona
+# Temperature 0.45: Warm, human-like responses (not robotic at 0, not too random at 1)
+llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash", 
+    google_api_key=api_key,
+    temperature=0.45
+)
 
 from flask import Flask, render_template, request, Response, jsonify, session, send_file, url_for, send_from_directory, redirect
 from functools import wraps
@@ -45,16 +63,119 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import plotly.express as px
 from plotly.io import to_html
 
+# ✅ LangChain DataFrame Agent for natural language data queries
+# Note: Using SimpleMemory instead of experimental agents to avoid dependency issues
+# from langchain_experimental.agents import create_pandas_dataframe_agent
+
+# ✅ LangChain Memory for conversation context (Customer Care)
+# Simple conversation memory implementation
+class SimpleMemory:
+    """Simple conversation memory to store chat history"""
+    def __init__(self, memory_key="chat_history"):
+        self.memory_key = memory_key
+        self.messages = []
+    
+    def save_context(self, inputs, outputs):
+        """Save user input and AI output to memory"""
+        if isinstance(inputs, dict):
+            user_msg = inputs.get("input", str(inputs))
+        else:
+            user_msg = str(inputs)
+        
+        if isinstance(outputs, dict):
+            ai_msg = outputs.get("output", str(outputs))
+        else:
+            ai_msg = str(outputs)
+        
+        self.messages.append({"user": user_msg, "ai": ai_msg})
+    
+    def load_memory_variables(self, inputs=None):
+        """Load memory as formatted string"""
+        chat_history = ""
+        for msg in self.messages[-5:]:  # Keep last 5 exchanges
+            if msg["user"]:
+                chat_history += f"Customer: {msg['user']}\n"
+            if msg["ai"]:
+                chat_history += f"Assistant: {msg['ai']}\n\n"
+        return {self.memory_key: chat_history}
+
 # ✅ Your own module
 from demographic import calculate_demographic_trends
 
-app = Flask(__name__)
+# ✅ Set up paths for frontend templates and static files
+template_folder = os.path.join(project_root, 'frontend', 'templates')
+static_folder = os.path.join(project_root, 'frontend', 'static')
+
+app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+# ✅ SECURITY CONFIGURATION - AI Safety Guardrails
+DANGEROUS_KEYWORDS = [
+    'delete', 'drop', 'truncate', 'alter', 'update', 'insert',
+    'modify', 'remove', 'drop table', 'execute', 'exec',
+    'import os', 'import sys', '__import__', 'eval', 'exec',
+    'drop column', 'flush', 'purge', 'destroy', 'erase',
+    'sys.', 'os.', 'subprocess', 'shell', 'lambda',
+    'exec(', 'eval(', '__code__', 'globals()', 'locals()'
+]
+
+ANALYTICS_KEYWORDS = [
+    'average', 'mean', 'median', 'sum', 'total', 'count', 'min', 'max',
+    'trend', 'analyze', 'analysis', 'insight', 'pattern', 'distribution',
+    'correlation', 'relationship', 'segment', 'group', 'filter', 'sort',
+    'customer', 'data', 'metric', 'statistic', 'churn', 'revenue', 'spending',
+    'income', 'age', 'purchase', 'order', 'sales', 'region', 'category',
+    'how many', 'how much', 'what is', 'show me', 'tell me', 'list', 'find',
+    'top', 'best', 'worst', 'highest', 'lowest', 'compare', 'difference'
+]
+
+GREETING_KEYWORDS = ['hello', 'hi', 'help', 'how', 'what', 'feature', 'platform', 'use']
+
+# ✅ VISUALIZATION CONFIGURATION - Chart generation keywords
+VISUALIZATION_KEYWORDS = ['chart', 'graph', 'plot', 'visualize', 'visualization', 'show me', 'display', 'diagram']
+VISUALIZATION_TYPES = {
+    'pie': ['pie', 'distribution', 'breakdown', 'percentage', 'share'],
+    'bar': ['bar', 'comparison', 'across', 'by', 'per'],
+    'line': ['trend', 'over time', 'trend line', 'line chart', 'time series'],
+    'scatter': ['scatter', 'correlation', 'relationship', 'scatter plot'],
+    'histogram': ['histogram', 'frequency', 'histogram distribution'],
+}
+
+# ✅ LOCALIZATION CONFIGURATION - Common region/location keywords
+COMMON_REGIONS = {
+    'nairobi': ['nairobi', 'nbi', 'cbd'],
+    'mombasa': ['mombasa', 'msa', 'coastal'],
+    'kisumu': ['kisumu', 'western'],
+    'nakuru': ['nakuru', 'rift valley'],
+    'kampala': ['kampala', 'uganda'],
+    'dar es salaam': ['dar es salaam', 'dar', 'tanzania'],
+    'accra': ['accra', 'ghana'],
+    'lagos': ['lagos', 'nigeria'],
+    'johannesburg': ['johannesburg', 'joburg', 'south africa'],
+}
+
+NON_TECHNICAL_TERMS = {
+    'average': 'typical',
+    'median': 'middle',
+    'mean': 'average',
+    'sum': 'total',
+    'count': 'number of',
+    'distribution': 'spread across',
+    'correlation': 'connection between',
+    'segment': 'group of',
+    'cohort': 'group of',
+    'metric': 'measurement',
+    'outlier': 'unusual data point',
+}
 
 # Load configuration from environment variables
 app.secret_key = os.getenv('SECRET_KEY', 'your-super-secret-key-change-this-in-production')
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
-app.config['OUTPUT_FOLDER'] = os.getenv('OUTPUT_FOLDER', 'outputs')
-app.config['USERS_FILE'] = os.getenv('USERS_FILE', os.path.join(os.path.dirname(__file__), 'users.json'))
+app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', os.path.join(backend_dir, 'uploads'))
+app.config['OUTPUT_FOLDER'] = os.getenv('OUTPUT_FOLDER', os.path.join(backend_dir, 'outputs'))
+app.config['USERS_FILE'] = os.getenv('USERS_FILE', os.path.join(backend_dir, 'users.json'))
 app.config['ALLOW_DEV_LOGIN'] = os.getenv('ALLOW_DEV_LOGIN', 'false').lower() == 'true'
 app.config.setdefault('USERS', None)  # will be loaded on demand
 uploaded_data = {}  # Store uploaded DataFrame by file_id
@@ -105,6 +226,400 @@ for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
 # Debug template loader
 print("Template folder:", app.template_folder)
 print("Available templates:", app.jinja_env.list_templates())
+
+# ✅ LangChain DataFrame Agent Setup
+# Dictionary to store agents for each user/session
+dataframe_agents = {}
+
+# ✅ Conversation Memory for Customer Care Agent
+# Stores conversation history per user session
+conversation_memories = {}  # Key: user_id, Value: ConversationBufferMemory
+
+def get_or_create_memory(user_id):
+    """Get or create a SimpleMemory for a user."""
+    if user_id not in conversation_memories:
+        conversation_memories[user_id] = SimpleMemory(
+            memory_key="chat_history"
+        )
+    return conversation_memories[user_id]
+
+def create_agent_for_dataframe(df, file_id):
+    """Store dataframe for later queries (simple approach without experimental agent)."""
+    try:
+        # Store the dataframe for query processing
+        dataframe_agents[file_id] = {"dataframe": df, "agent_type": "simple"}
+        return {"dataframe": df, "agent_type": "simple"}
+    except Exception as e:
+        print(f"Error creating dataframe agent: {e}")
+        return None
+
+def query_dataframe_agent(query, file_id):
+    """Execute a natural language query on the uploaded dataframe using simple pandas operations."""
+    try:
+        if file_id not in dataframe_agents:
+            if file_id in uploaded_data:
+                df = uploaded_data[file_id]
+                create_agent_for_dataframe(df, file_id)
+            else:
+                return {"error": "No data available. Please upload a CSV file first."}
+        
+        agent_info = dataframe_agents[file_id]
+        df = agent_info["dataframe"]
+        
+        # Simple query processing - use LLM to generate analysis
+        response = llm.invoke(f"Analyze this dataframe based on the query. Query: {query}\n\nDataframe columns: {df.columns.tolist()}\n\nDataframe info:\n{df.describe().to_string()}")
+        output = response.content if hasattr(response, 'content') else str(response)
+        
+        return {"result": output}
+    except Exception as e:
+        return {"error": f"Error processing query: {str(e)}"}
+
+
+def detect_visualization_type(query):
+    """Detect if a query requires visualization and return the chart type."""
+    query_lower = query.lower()
+    
+    # Check if visualization is requested
+    has_viz_request = any(kw in query_lower for kw in VISUALIZATION_KEYWORDS)
+    if not has_viz_request:
+        return None
+    
+    # Detect chart type
+    for chart_type, keywords in VISUALIZATION_TYPES.items():
+        if any(kw in query_lower for kw in keywords):
+            return chart_type
+    
+    # Default to bar chart if visualization requested but type not specific
+    return 'bar'
+
+
+def generate_chart_from_dataframe(df, query, chart_type='bar'):
+    """
+    Generate a Plotly chart based on the dataframe and query.
+    
+    Returns: Plotly chart JSON or None if chart cannot be generated
+    """
+    try:
+        query_lower = query.lower()
+        
+        # Detect what columns to use
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
+        
+        if not numeric_cols:
+            return None
+        
+        # Try to detect the relevant column from query
+        primary_col = numeric_cols[0]
+        group_col = None
+        
+        # Check if query mentions specific columns
+        for col in df.columns:
+            col_lower = col.lower()
+            if col_lower in query_lower:
+                if col in numeric_cols:
+                    primary_col = col
+                elif col in categorical_cols:
+                    group_col = col
+        
+        # If no group column detected, try to use categorical columns
+        if not group_col and categorical_cols:
+            group_col = categorical_cols[0]
+        
+        # Generate appropriate chart
+        if chart_type == 'pie' and group_col:
+            grouped = df.groupby(group_col)[primary_col].sum().reset_index()
+            fig = px.pie(grouped, values=primary_col, names=group_col, 
+                        title=f'{primary_col} Distribution by {group_col}')
+        
+        elif chart_type == 'bar' and group_col:
+            grouped = df.groupby(group_col)[primary_col].agg(['mean', 'count']).reset_index()
+            fig = px.bar(grouped, x=group_col, y='mean',
+                        title=f'Average {primary_col} by {group_col}',
+                        labels={'mean': f'Average {primary_col}'})
+        
+        elif chart_type == 'line' and group_col:
+            grouped = df.groupby(group_col)[primary_col].mean().reset_index()
+            fig = px.line(grouped, x=group_col, y=primary_col,
+                         markers=True,
+                         title=f'{primary_col} Trend')
+        
+        elif chart_type == 'scatter' and len(numeric_cols) >= 2:
+            fig = px.scatter(df, x=numeric_cols[0], y=numeric_cols[1],
+                            title=f'{numeric_cols[0]} vs {numeric_cols[1]}')
+        
+        elif chart_type == 'histogram':
+            fig = px.histogram(df, x=primary_col,
+                             title=f'Distribution of {primary_col}',
+                             nbins=20)
+        
+        else:
+            # Fallback to bar chart with first numeric column
+            if len(numeric_cols) >= 1:
+                value_counts = df[numeric_cols[0]].value_counts().head(10).reset_index()
+                fig = px.bar(value_counts, x=numeric_cols[0], y='count',
+                            title=f'Top 10 {numeric_cols[0]} Values')
+            else:
+                return None
+        
+        # Convert to JSON
+        chart_json = fig.to_json()
+        return chart_json
+    
+    except Exception as e:
+        print(f"Error generating chart: {str(e)}")
+        return None
+
+
+def detect_region(query):
+    """
+    Detect if the query mentions a specific region.
+    
+    Returns: Region name or None
+    """
+    query_lower = query.lower()
+    
+    for region, keywords in COMMON_REGIONS.items():
+        for keyword in keywords:
+            if keyword in query_lower:
+                return region
+    
+    return None
+
+
+def filter_dataframe_by_region(df, region):
+    """
+    Filter dataframe by region if Region column exists.
+    
+    Returns: Filtered dataframe
+    """
+    # Find region column (case-insensitive)
+    region_col = None
+    for col in df.columns:
+        if col.lower() in ['region', 'location', 'city', 'area']:
+            region_col = col
+            break
+    
+    if not region_col:
+        return df
+    
+    # Filter by region
+    filtered_df = df[df[region_col].str.lower().str.contains(region, case=False, na=False)]
+    return filtered_df if len(filtered_df) > 0 else df
+
+
+def translate_to_nontechnical(text):
+    """
+    Convert technical terms to non-technical language.
+    
+    Returns: Simplified text
+    """
+    result = text
+    for technical, simple in NON_TECHNICAL_TERMS.items():
+        # Replace both exact matches and variations
+        result = result.replace(technical, simple)
+        result = result.replace(technical.capitalize(), simple.capitalize())
+        result = result.replace(technical.upper(), simple.upper())
+    
+    return result
+
+
+def format_business_summary(df, region=None, query=None):
+    """
+    Generate a business-friendly summary of the data.
+    
+    Returns: Summary text
+    """
+    try:
+        # Filter by region if specified
+        if region:
+            df = filter_dataframe_by_region(df, region)
+        
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        
+        summary_parts = []
+        
+        # Add region context
+        if region:
+            summary_parts.append(f"📍 **{region.title()} Market Insights:**\n")
+        
+        # Add customer count
+        if 'CustomerID' in df.columns:
+            customer_count = df['CustomerID'].nunique()
+            summary_parts.append(f"👥 **{customer_count:,} customers** in this area")
+        
+        # Add key metrics in simple language
+        if 'SalesAmount' in df.columns:
+            total_sales = df['SalesAmount'].sum()
+            avg_sales = df['SalesAmount'].mean()
+            summary_parts.append(f"\n💰 **Sales Performance:**")
+            summary_parts.append(f"   • Total revenue: KES {total_sales:,.0f}")
+            summary_parts.append(f"   • Average per transaction: KES {avg_sales:,.0f}")
+        
+        if 'Spending_Score' in df.columns:
+            avg_spending = df['Spending_Score'].mean()
+            summary_parts.append(f"\n🛍️ **Customer Spending:** {avg_spending:.0f}/100 (higher = more active)")
+        
+        # Add performance status
+        if 'Churn_Risk' in df.columns:
+            high_risk = (df['Churn_Risk'] == 'High').sum()
+            total = len(df)
+            risk_pct = (high_risk / total) * 100 if total > 0 else 0
+            summary_parts.append(f"\n⚠️ **At-Risk Customers:** {risk_pct:.1f}% need attention")
+        
+        summary_text = "\n".join(summary_parts)
+        return translate_to_nontechnical(summary_text)
+    
+    except Exception as e:
+        print(f"Error generating summary: {str(e)}")
+        return "Summary generation is not available."
+
+def suggest_strategy_dynamically(df, query, ai_response):
+    """
+    Suggest actionable strategies based on data insights and detected trends.
+    Integrates dynamically into chat responses for customer care.
+    Acts as a living guide for explaining specialized pages (CLV, RFM, etc.)
+    """
+    try:
+        strategies = []
+        query_lower = query.lower()
+        
+        # STRATEGY 1: At-Risk Customer Detection & Retention
+        if any(keyword in query_lower for keyword in ['at-risk', 'at risk', 'churn', 'leaving', 'retention']):
+            if 'Churn_Risk' in df.columns:
+                high_risk = df[df['Churn_Risk'] == 'High']
+                high_risk_count = len(high_risk)
+                if high_risk_count > 0:
+                    # Calculate percentage
+                    risk_pct = (high_risk_count / len(df)) * 100
+                    avg_value = high_risk['Annual_Income'].mean() if 'Annual_Income' in df.columns else 0
+                    
+                    strategies.append(
+                        f"🚨 **At-Risk Customer Alert:**\n"
+                        f"• {high_risk_count} customers ({risk_pct:.1f}%) are at high churn risk\n"
+                        f"• Average value of at-risk segment: ${avg_value:,.0f}\n"
+                        f"\n💡 **Recommended Actions:**\n"
+                        f"  1. Launch immediate outreach: personalized emails, loyalty offers, dedicated support\n"
+                        f"  2. Offer special discounts or exclusive perks to re-engage them\n"
+                        f"  3. Schedule check-in calls with your top at-risk customers\n"
+                        f"  4. Create a win-back campaign with 30-day limited offers\n"
+                        f"  5. Review why they're at risk: product issues? price concerns? poor service?"
+                    )
+            elif 'Spending_Score' in df.columns:
+                low_spenders = df[df['Spending_Score'] < 30]
+                if len(low_spenders) > 0:
+                    strategies.append(
+                        f"⚠️ **Low Engagement Alert:**\n"
+                        f"• {len(low_spenders)} customers show low engagement patterns\n"
+                        f"\n💡 **Re-engagement Strategy:**\n"
+                        f"  1. Segment by reason: haven't purchased in 60+ days? Low purchase frequency?\n"
+                        f"  2. Send re-engagement campaign: 'We miss you' offers, exclusive previews\n"
+                        f"  3. Offer free shipping, bonus loyalty points, or early access to sales\n"
+                        f"  4. Conduct quick survey: Why did they stop buying?"
+                    )
+        
+        # STRATEGY 2: CLV (Customer Lifetime Value) Explanation & Optimization
+        if any(keyword in query_lower for keyword in ['clv', 'lifetime value', 'customer value', 'high value']):
+            if 'SalesAmount' in df.columns and 'CustomerID' in df.columns:
+                total_clv = df['SalesAmount'].sum()
+                avg_clv = df['SalesAmount'].mean()
+                high_value = df[df['SalesAmount'] > df['SalesAmount'].quantile(0.75)]
+                
+                strategies.append(
+                    f"💰 **Customer Lifetime Value (CLV) Explained:**\n"
+                    f"• **What it means:** Total revenue each customer generates with you\n"
+                    f"• Your total CLV: ${total_clv:,.0f}\n"
+                    f"• Average CLV per customer: ${avg_clv:,.0f}\n"
+                    f"• Top 25% of customers contribute: ${high_value['SalesAmount'].sum():,.0f}\n"
+                    f"\n📊 **What This Tells You:**\n"
+                    f"  • {len(high_value)} customers ({(len(high_value)/len(df)*100):.1f}%) drive ~{(high_value['SalesAmount'].sum()/total_clv*100):.0f}% of revenue\n"
+                    f"  • Focus retention efforts on top CLV customers—losing one costs you significantly\n"
+                    f"\n🎯 **Next Steps:**\n"
+                    f"  1. Visit CLV page to see detailed breakdown by customer segment\n"
+                    f"  2. Identify your 'Champions' (highest CLV) and VIPs\n"
+                    f"  3. Create premium experiences for top customers\n"
+                    f"  4. Use CLV to guide marketing budget allocation"
+                )
+        
+        # STRATEGY 3: RFM Segment Strategy
+        if any(keyword in query_lower for keyword in ['champion', 'loyal', 'rfm', 'segment', 'frequency']):
+            if 'Spending_Score' in df.columns:
+                champions = df[df['Spending_Score'] >= 75]
+                loyal = df[(df['Spending_Score'] >= 50) & (df['Spending_Score'] < 75)]
+                at_risk = df[df['Spending_Score'] < 30]
+                
+                strategies.append(
+                    f"👑 **Customer Segment Strategy:**\n"
+                    f"\n**Champions ({len(champions)} customers - {(len(champions)/len(df)*100):.0f}%):**\n"
+                    f"  • Your best customers—they buy frequently and spend generously\n"
+                    f"  • Strategy: VIP treatment, exclusive access, loyalty rewards\n"
+                    f"  • Action: Personalized outreach, early sale access, premium support\n"
+                    f"\n**Loyal Customers ({len(loyal)} customers - {(len(loyal)/len(df)*100):.0f}%):**\n"
+                    f"  • Regular buyers with consistent engagement\n"
+                    f"  • Strategy: Keep them engaged and moving toward Champion status\n"
+                    f"  • Action: Loyalty programs, cross-sell opportunities, special offers\n"
+                    f"\n**At-Risk ({len(at_risk)} customers - {(len(at_risk)/len(df)*100):.0f}%):**\n"
+                    f"  • Low engagement—they may be close to leaving\n"
+                    f"  • Strategy: Win-back campaigns with special incentives\n"
+                    f"  • Action: Targeted discounts, free consultations, personalized recommendations"
+                )
+        
+        # STRATEGY 4: Revenue Optimization
+        if any(keyword in query_lower for keyword in ['revenue', 'sales', 'growth', 'increase', 'optimize']):
+            if 'SalesAmount' in df.columns:
+                total_revenue = df['SalesAmount'].sum()
+                avg_transaction = df['SalesAmount'].mean()
+                customer_count = df['CustomerID'].nunique() if 'CustomerID' in df.columns else len(df)
+                
+                strategies.append(
+                    f"💹 **Revenue Optimization Strategy:**\n"
+                    f"• Current total revenue: ${total_revenue:,.0f}\n"
+                    f"• Average transaction value: ${avg_transaction:,.0f}\n"
+                    f"• Customer count: {customer_count}\n"
+                    f"\n**To grow revenue, focus on 3 areas:**\n"
+                    f"  1. **Increase transaction value** (${avg_transaction:,.0f} → ${avg_transaction*1.2:,.0f}):\n"
+                    f"     - Bundle products, upsell premium options\n"
+                    f"     - Create 'product bundles' that increase order value\n"
+                    f"\n  2. **Increase purchase frequency**:\n"
+                    f"     - Email campaigns every 2-4 weeks\n"
+                    f"     - Loyalty rewards for repeat purchases\n"
+                    f"     - Subscription/subscription-like models\n"
+                    f"\n  3. **Acquire new customers**:\n"
+                    f"     - Marketing budget allocation based on high-CLV segment profile\n"
+                    f"     - Target lookalike audiences of your Champions"
+                )
+        
+        # STRATEGY 5: Default comprehensive overview
+        if not strategies:
+            if 'CustomerID' in df.columns and len(df) > 0:
+                total_customers = df['CustomerID'].nunique()
+                total_revenue = df['SalesAmount'].sum() if 'SalesAmount' in df.columns else 0
+                
+                strategies.append(
+                    f"📈 **Dashboard Overview & Recommendations:**\n"
+                    f"\n**Your Customer Base:**\n"
+                    f"• Total customers: {total_customers}\n"
+                    f"• Total transactions: {len(df)}\n"
+                    f"• Total revenue: ${total_revenue:,.0f}\n"
+                    f"\n**Explore Your Data:**\n"
+                    f"  • Go to **RFM Analysis** to see customer segments (Champions, Loyal, At-Risk)\n"
+                    f"  • Go to **CLV Analysis** to understand customer lifetime value\n"
+                    f"  • Go to **Behavior** to see purchase patterns\n"
+                    f"  • Go to **Churn Analysis** to identify customers likely to leave\n"
+                    f"\n**Start with these questions:**\n"
+                    f"  1. 'Who are my at-risk customers?'\n"
+                    f"  2. 'What's my top customer segment?'\n"
+                    f"  3. 'Explain the CLV results in simple terms'\n"
+                    f"  4. 'What's my revenue breakdown by customer segment?'"
+                )
+        
+        if strategies:
+            return "\n\n".join(strategies)
+        return ""
+    
+    except Exception as e:
+        print(f"Error suggesting strategy: {str(e)}")
+        return ""
 
 # Simulated upload progress tracking
 upload_progress = {}
@@ -200,6 +715,258 @@ def logout():
     return redirect(url_for('login'))
 
 
+@app.route('/ask_data', methods=['POST'])
+@login_required
+def ask_data():
+    """
+    Natural language query interface for the uploaded dataframe with security guardrails.
+    
+    ✅ Features:
+    - Read-only access (no data modifications)
+    - Restricted to analytics queries only
+    - Input validation and filtering
+    - Safe dataframe operations
+    
+    Example queries:
+    - "What is the average spending score?"
+    - "Show me the top 5 customers by annual income"
+    - "How many unique regions are there?"
+    - "Filter customers with spending score above 70"
+    """
+    try:
+        # Get the query from the request
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        
+        if not query:
+            return jsonify({"error": "Please provide a query."})
+        
+        # ✅ Security Check: Filter dangerous operations using global config
+        query_lower = query.lower()
+        for keyword in DANGEROUS_KEYWORDS:
+            if keyword in query_lower:
+                return jsonify({
+                    "error": "❌ Security Policy Violation: Data modification operations are not allowed. I have read-only access to your data. Please ask analytical questions instead."
+                })
+        
+        # Get the file_id from session
+        file_id = session.get('last_uploaded_file_id')
+        if not file_id:
+            return jsonify({"error": "No data uploaded. Please upload a CSV file first."})
+        
+        # ✅ Enhanced safety wrapper for dataframe agent
+        enhanced_query = f"""
+IMPORTANT: You have READ-ONLY access to this dataframe. You cannot modify, delete, or change any data.
+
+User Query: {query}
+
+Constraints:
+1. Only perform read-only operations (describe, head, tail, groupby, agg, filter, sort, count, mean, etc.)
+2. Do NOT attempt to modify the dataframe (no assignments, no deletions, no updates)
+3. If the user asks to modify data, refuse and explain you have read-only access
+4. Provide analysis, insights, and summaries instead
+5. Return results in a clear, human-readable format
+
+Proceed with analysis:
+"""
+        
+        # Query the agent with enhanced safety
+        response = query_dataframe_agent(enhanced_query, file_id)
+        
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"})
+
+
+
+@app.route('/ask_data_ui')
+@login_required
+def ask_data_ui():
+    """Render the Ask Data UI page."""
+    if 'last_uploaded_file_id' not in session:
+        return render_template('ask_data.html', error="No data uploaded. Please upload a CSV file first.")
+    
+    return render_template('ask_data.html')
+
+
+@app.route('/chat', methods=['POST'])
+@login_required
+def chat():
+    """
+    Chat endpoint for floating chat bubble with security guardrails.
+    
+    Features:
+    - Read-only access (no data modifications allowed)
+    - Restricted to customer analytics topics only
+    - Prompt engineering to refuse harmful requests
+    - Input validation and filtering
+    """
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '').strip()
+        user_id = session.get('user')  # Get current user ID from session
+        
+        if not user_message:
+            return jsonify({"error": "Please provide a message."})
+        
+        # ✅ Get or create conversation memory for this user (Customer Care)
+        memory = get_or_create_memory(user_id)
+        
+        # ✅ Security Check 1: Filter malicious keywords using global config
+        user_message_lower = user_message.lower()
+        for keyword in DANGEROUS_KEYWORDS:
+            if keyword in user_message_lower:
+                return jsonify({
+                    "response": "❌ I cannot perform data modification operations. I have read-only access to your data. I can only help you analyze and understand your customer data.",
+                    "has_data": False,
+                    "security_filtered": True
+                })
+        
+        # ✅ Security Check 2: Check if query is analytics-related
+        # Check if message contains at least one analytics keyword
+        has_analytics_keyword = any(keyword in user_message_lower for keyword in ANALYTICS_KEYWORDS)
+        
+        if not has_analytics_keyword:
+            # Check if it's a general greeting or platform question
+            has_greeting = any(keyword in user_message_lower for keyword in GREETING_KEYWORDS)
+            
+            if not has_greeting:
+                return jsonify({
+                    "response": "ℹ️ I'm specialized in customer data analysis. I can help with questions about:\n• Customer metrics and statistics\n• Data patterns and trends\n• Segment analysis\n• Revenue and spending insights\n\nPlease ask me about your customer data!",
+                    "has_data": False,
+                    "out_of_scope": True
+                })
+        
+        # Check if user has uploaded data
+        file_id = session.get('last_uploaded_file_id')
+        has_data = file_id and file_id in uploaded_data
+        
+        # ✅ Detect if query is region-specific
+        detected_region = None
+        if has_data:
+            detected_region = detect_region(user_message)
+        
+        # Build context for the LLM with security instructions
+        context = ""
+        if has_data:
+            df = uploaded_data[file_id]
+            
+            # Filter by region if detected
+            if detected_region:
+                df_context = filter_dataframe_by_region(df, detected_region)
+            else:
+                df_context = df
+            
+            # Provide data context to the LLM
+            context = f"\n\nUser has uploaded a dataset with {len(df_context)} rows and columns: {', '.join(df_context.columns.tolist())}"
+            context += f"\nData summary:\n{df_context.describe().to_string()}"
+            
+            # Add business summary for non-technical understanding
+            business_summary = format_business_summary(df_context, detected_region, user_message)
+            context += f"\n\nBusiness Summary:\n{business_summary}"
+        
+        # ✅ Smart Segmentation Support Assistant - Customer Care Persona
+        system_prompt = """You are the Smart Segmentation Support Assistant, a polite and professional customer care representative. Your goal is to help business owners understand their customer data.
+
+TONE & PERSONALITY:
+• Always be courteous, patient, and helpful
+• Use phrases like 'I would be happy to help,' 'Certainly,' and 'Please let me know if you need more details'
+• Adopt a warm, consultative approach
+
+CONTEXT & EXPERTISE:
+• You have access to customer dataset and analytics
+• Provide factual answers grounded in the data
+• Explain insights in simple, business-friendly terms
+• Avoid technical jargon—use everyday language
+
+CONSULTANT APPROACH:
+• When data shows negative trends (like high churn), deliver the news gently
+• Immediately follow up with helpful strategies and recommendations
+• Focus on actionable insights and solutions
+• Build confidence and support informed decision-making
+
+SAFETY & BOUNDARIES:
+• Never perform 'Write', 'Delete', or 'Update' operations
+• If a user asks to modify data, politely explain that you are a read-only assistant
+• You are designed for analysis and support only
+• Redirect requests for data modification with a helpful alternative
+
+COMMUNICATION STYLE:
+• Use simple, business-friendly language
+• Break complex insights into clear bullet points
+• Use emojis for clarity (👥 customers, 💰 revenue, ⚠️ risks, 🎯 opportunities)
+• Provide context: explain what the numbers mean and why they matter
+• Suggest next steps when appropriate"""
+        
+        full_message = f"{system_prompt}{context}\n\nUser message: {user_message}"
+        
+        # ✅ Store user message in conversation memory
+        memory.save_context({"input": user_message}, {"output": ""})
+        
+        # ✅ Build enhanced context with conversation history for follow-up questions
+        chat_history = memory.load_memory_variables({}).get("chat_history", "")
+        if chat_history:
+            full_message = f"{system_prompt}{context}\n\nConversation history:\n{chat_history}\n\nLatest user message: {user_message}"
+        
+        # Use the LLM to generate response
+        response = llm.invoke(full_message)
+        
+        # Extract text from response
+        ai_response = response.content if hasattr(response, 'content') else str(response)
+        
+        # ✅ Save AI response to memory for future context
+        memory.save_context({"input": user_message}, {"output": ai_response})
+        
+        # ✅ Dynamic Strategy Integration - Suggest actionable strategies based on data
+        suggested_strategy = ""
+        if has_data:
+            try:
+                df = uploaded_data[file_id]
+                suggested_strategy = suggest_strategy_dynamically(df, user_message, ai_response)
+                if suggested_strategy:
+                    ai_response = f"{ai_response}\n\n{suggested_strategy}"
+            except Exception as e:
+                print(f"⚠️ Could not generate strategy suggestion: {str(e)}")
+        
+        # ✅ Visualization Generation: Check if user wants a chart
+        chart_json = None
+        chart_type = None
+        
+        if has_data:
+            chart_type = detect_visualization_type(user_message)
+            if chart_type:
+                try:
+                    df = uploaded_data[file_id]
+                    # Apply regional filtering if applicable
+                    region = detect_region(user_message)
+                    if region:
+                        df = filter_dataframe_by_region(df, region)
+                        if df.empty:
+                            print(f"⚠️ No data found for region: {region}")
+                    chart_json = generate_chart_from_dataframe(df, user_message, chart_type)
+                    if chart_json:
+                        print(f"✅ Generated {chart_type} chart for query: {user_message}")
+                except Exception as e:
+                    print(f"⚠️ Could not generate chart: {str(e)}")
+        
+        response_data = {
+            "response": ai_response,
+            "has_data": has_data
+        }
+        
+        # Include chart if generated
+        if chart_json:
+            response_data["chart"] = chart_json
+            response_data["chart_type"] = chart_type
+        
+        return jsonify(response_data)
+    except Exception as e:
+        print(f"Chat error: {str(e)}")
+        return jsonify({"error": f"Error processing message: {str(e)}"})
+
+
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """Register new users and save them to a users.json file.
@@ -290,6 +1057,14 @@ def home():
                 df = pd.read_csv(file)
                 uploaded_data[file_id] = df
                 session['last_uploaded_file_id'] = file_id
+                
+                # ✅ Create a dataframe agent for this file
+                agent = create_agent_for_dataframe(df, file_id)
+                if agent:
+                    print(f"✅ Dataframe agent created for file_id: {file_id}")
+                else:
+                    print(f"⚠️ Warning: Could not create dataframe agent")
+                
                 print("File processed and stored successfully")
             except Exception as e:
                 print(f"Error processing file: {str(e)}")
@@ -627,9 +1402,9 @@ def rfm_analysis():
         if selected_segment != 'All':
             rfm_table = rfm_table[rfm_table['Segment'] == selected_segment]
 
-        csv_path = os.path.join('static', 'rfm_output.csv')
+        csv_path = os.path.join(app.static_folder, 'rfm_output.csv')
         rfm_table.to_csv(csv_path)
-        download_link = '/' + csv_path
+        download_link = url_for('static', filename='rfm_output.csv')
 
         table = rfm_table.to_html(
             classes='table table-bordered table-striped table-hover display',
@@ -756,9 +1531,9 @@ def behavior_analysis():
         behavior_table = behavior_table[behavior_table['BehaviorType'] == selected_segment]
 
     # CSV Export
-    csv_path = os.path.join('static', 'behavior_output.csv')
+    csv_path = os.path.join(app.static_folder, 'behavior_output.csv')
     behavior_table.to_csv(csv_path, index=False)
-    download_link = '/' + csv_path
+    download_link = url_for('static', filename='behavior_output.csv')
 
     # Generate HTML table
     table = behavior_table.to_html(
@@ -963,12 +1738,32 @@ def clv_analysis():
     file_id = session.get('last_uploaded_file_id')
     if not file_id or file_id not in uploaded_data:
         error = "No data available. Please upload a CSV file first."
-        return render_template('clv.html', error=error)
+        return render_template(
+            'clv.html',
+            error=error,
+            pie_chart=pie_chart,
+            bar_chart=bar_chart,
+            line_chart=line_chart,
+            scatter_plot=scatter_plot,
+            clv_results=clv_results,
+            clv_summary=clv_summary,
+            download_link=download_link
+        )
 
     df = uploaded_data[file_id]
     if not all(col in df.columns for col in ['CustomerID', 'OrderDate', 'SalesAmount']):
         error = "CSV must contain 'CustomerID', 'OrderDate', and 'SalesAmount' columns."
-        return render_template('clv.html', error=error)
+        return render_template(
+            'clv.html',
+            error=error,
+            pie_chart=pie_chart,
+            bar_chart=bar_chart,
+            line_chart=line_chart,
+            scatter_plot=scatter_plot,
+            clv_results=clv_results,
+            clv_summary=clv_summary,
+            download_link=download_link
+        )
 
     df['OrderDate'] = pd.to_datetime(df['OrderDate'])
     df['OrderMonth'] = df['OrderDate'].dt.to_period('M').astype(str)
@@ -1617,11 +2412,6 @@ def results():
 
     except Exception as e:
         error = f"An error occurred during processing: {str(e)}"
-
-    # Fallback chart if no data
-    if not combined_charts:
-        test_fig = px.pie(names=["Segment A", "Segment B", "Segment C"], values=[30, 45, 25], title="Test Chart")
-        combined_charts["Test Chart"] = to_html(test_fig, full_html=False)
 
     return render_template(
         'results.html',

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Ask Your Data{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1 class="mb-4">💬 Ask Your Data</h1>
+            
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <p class="text-muted mb-4">
+                        <strong>Powered by AI:</strong> Ask natural language questions about your data. 
+                        The AI will analyze and provide insights.
+                    </p>
+
+                    <!-- Query Input Area -->
+                    <div class="form-group mb-4">
+                        <label for="queryInput" class="form-label fw-bold">Your Question:</label>
+                        <textarea 
+                            id="queryInput" 
+                            class="form-control" 
+                            rows="4" 
+                            placeholder="Examples:&#10;• What is the average spending score?&#10;• Show me the top 5 customers by annual income&#10;• How many unique regions are there?&#10;• Filter customers with spending score above 70"
+                            style="font-size: 16px;"></textarea>
+                        <small class="text-muted d-block mt-2">
+                            Ask questions about your data in natural language.
+                        </small>
+                    </div>
+
+                    <!-- Send Button -->
+                    <div class="mb-4">
+                        <button 
+                            id="submitBtn" 
+                            class="btn btn-primary btn-lg w-100"
+                            onclick="submitQuery()">
+                            <i class="fas fa-paper-plane"></i> Send Query
+                        </button>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div id="loadingSpinner" class="text-center d-none mb-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-2">Processing your query...</p>
+                    </div>
+
+                    <!-- Response Area -->
+                    <div id="responseArea" class="d-none">
+                        <hr class="my-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="fas fa-lightbulb text-warning"></i> AI Response:
+                        </h5>
+                        <div id="responseContent" class="alert alert-info p-4 rounded">
+                            <!-- Response will be inserted here -->
+                        </div>
+                        <button 
+                            class="btn btn-secondary mt-3"
+                            onclick="resetForm()">
+                            Ask Another Question
+                        </button>
+                    </div>
+
+                    <!-- Error Area -->
+                    <div id="errorArea" class="d-none">
+                        <hr class="my-4">
+                        <div id="errorContent" class="alert alert-danger p-4 rounded">
+                            <!-- Error will be inserted here -->
+                        </div>
+                        <button 
+                            class="btn btn-secondary mt-3"
+                            onclick="resetForm()">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Queries Section -->
+            <div class="card mt-5 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">
+                        <i class="fas fa-question-circle"></i> Example Queries
+                    </h5>
+                    <div class="list-group list-group-flush">
+                        <button 
+                            class="list-group-item list-group-item-action text-start"
+                            onclick="setQuery('What is the average spending score?')">
+                            What is the average spending score?
+                        </button>
+                        <button 
+                            class="list-group-item list-group-item-action text-start"
+                            onclick="setQuery('Show me the top 5 customers by annual income')">
+                            Show me the top 5 customers by annual income
+                        </button>
+                        <button 
+                            class="list-group-item list-group-item-action text-start"
+                            onclick="setQuery('How many unique regions are there?')">
+                            How many unique regions are there?
+                        </button>
+                        <button 
+                            class="list-group-item list-group-item-action text-start"
+                            onclick="setQuery('What is the correlation between spending score and annual income?')">
+                            What is the correlation between spending score and annual income?
+                        </button>
+                        <button 
+                            class="list-group-item list-group-item-action text-start"
+                            onclick="setQuery('Create a summary of customer demographics')">
+                            Create a summary of customer demographics
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setQuery(query) {
+    document.getElementById('queryInput').value = query;
+    document.getElementById('queryInput').focus();
+}
+
+function submitQuery() {
+    const query = document.getElementById('queryInput').value.trim();
+    
+    if (!query) {
+        alert('Please enter a question.');
+        return;
+    }
+
+    // Show loading spinner
+    document.getElementById('loadingSpinner').classList.remove('d-none');
+    document.getElementById('responseArea').classList.add('d-none');
+    document.getElementById('errorArea').classList.add('d-none');
+    document.getElementById('submitBtn').disabled = true;
+
+    // Send request to backend
+    fetch('/ask_data', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: query })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loadingSpinner').classList.add('d-none');
+        document.getElementById('submitBtn').disabled = false;
+
+        if (data.error) {
+            // Show error
+            document.getElementById('errorContent').innerHTML = `
+                <strong>Error:</strong> ${escapeHtml(data.error)}
+            `;
+            document.getElementById('errorArea').classList.remove('d-none');
+        } else {
+            // Show response
+            document.getElementById('responseContent').innerHTML = `
+                <div class="response-text" style="white-space: pre-wrap; font-family: 'Courier New', monospace;">
+                    ${escapeHtml(data.result)}
+                </div>
+            `;
+            document.getElementById('responseArea').classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        document.getElementById('loadingSpinner').classList.add('d-none');
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('errorContent').innerHTML = `
+            <strong>Error:</strong> ${escapeHtml(error.message)}
+        `;
+        document.getElementById('errorArea').classList.remove('d-none');
+    });
+}
+
+function resetForm() {
+    document.getElementById('queryInput').value = '';
+    document.getElementById('responseArea').classList.add('d-none');
+    document.getElementById('errorArea').classList.add('d-none');
+    document.getElementById('queryInput').focus();
+}
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Allow Enter key to submit (with Ctrl/Cmd)
+document.getElementById('queryInput').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        submitQuery();
+    }
+});
+
+// Focus on page load
+window.addEventListener('load', function() {
+    document.getElementById('queryInput').focus();
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 12px;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-primary {
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+.list-group-item {
+    border: 1px solid #e0e0e0;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.response-text {
+    line-height: 1.6;
+    color: #333;
+}
+</style>
+{% endblock %}
