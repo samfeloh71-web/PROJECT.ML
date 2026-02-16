@@ -1,227 +1,224 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - {{ role }}{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Dashboard - Market Lens{% endblock %}
 
 {% block content %}
 <style>
-    .dashboard-card {
-        border-radius: 18px;
-        transition: 0.25s;
-        cursor: pointer;
-        padding: 20px;
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        text-align: center;
     }
-    .dashboard-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
-    }
-    .card-title-small {
-        font-size: 0.85rem;
+
+    .page-header h1 {
+        font-size: 2rem;
         font-weight: 700;
-        letter-spacing: 0.7px;
-        text-transform: uppercase;
-        opacity: 0.75;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
     }
-    .main-btn {
-        border-radius: 10px;
+
+    .page-header p {
+        font-size: 1rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .analytics-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .analytics-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+        transform: translateY(-2px);
+        text-decoration: none;
+    }
+
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        background: #f1f5f9;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        font-size: 1.75rem;
+    }
+
+    .analytics-card:hover .card-icon {
+        background: #dbeafe;
+    }
+
+    .card-title {
+        font-size: 1.125rem;
         font-weight: 600;
-        margin-top: 10px;
-        padding: 6px 14px;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
     }
-    .welcome-banner {
-        border-radius: 20px;
-        padding: 40px;
-        background: linear-gradient(135deg, #0d6efd, #4e9efc);
+
+    .card-description {
+        font-size: 0.9rem;
+        color: #64748b;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        color: white;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
     }
 </style>
 
-<div class="container-fluid py-4">
-
-    <!-- Welcome Banner -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="welcome-banner text-white shadow-lg">
-                <h2 class="fw-bold mb-1">Welcome, {{ user }}</h2>
-                <p class="mb-0">
-                    <strong>Role:</strong> {{ role }} &nbsp; | &nbsp;
-                    <strong>Login Time:</strong> {{ login_time }}
-                </p>
-            </div>
-        </div>
-    </div>
-
-    {% if role == 'CEO' %}
-    <!-- ✅ CEO Professional Dashboard -->
-    <div class="row">
-
-        <!-- Business Strategies -->
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#e8f1ff;">
-                <div class="card-body">
-                    <div class="card-title-small text-primary">Business Strategies</div>
-                    <h5 class="fw-bold text-dark">Solutions</h5>
-                    <button class="btn btn-primary main-btn" onclick="triggerStrategyChat()">Generate Ai-strategies</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Financial Trends -->
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#eafaf0;">
-                <div class="card-body">
-                    <div class="card-title-small text-success">Financial Trends</div>
-                    <h5 class="fw-bold text-dark">Analytics</h5>
-                    <a href="{{ url_for('ceo_financial_trends') }}" 
-                       class="btn btn-success main-btn">Generate Ai-Trends</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Performance Metrics -->
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#e7f7fb;">
-                <div class="card-body">
-                    <div class="card-title-small text-info">Performance Metrics</div>
-                    <h5 class="fw-bold text-dark">Reports</h5>
-                    <a href="{{ url_for('ceo_performance_metrics') }}" 
-                       class="btn btn-info main-btn">Generate Ai-Metrics</a>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    {% else %}
-    <!-- ✅ Company Analyst Dashboard (Improved UI) -->
-    <div class="row">
-
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#e8f1ff;">
-                <div class="card-body">
-                    <div class="card-title-small text-primary">RFM Analysis</div>
-                    <h5 class="fw-bold text-dark">Customer Value</h5>
-                    <a href="{{ url_for('rfm_analysis') }}" class="btn btn-primary main-btn">View</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#eafaf0;">
-                <div class="card-body">
-                    <div class="card-title-small text-success">CLV Analysis</div>
-                    <h5 class="fw-bold text-dark">Lifetime Value</h5>
-                    <a href="{{ url_for('clv_analysis') }}" class="btn btn-success main-btn">View</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#e7f7fb;">
-                <div class="card-body">
-                    <div class="card-title-small text-info">Churn Analysis</div>
-                    <h5 class="fw-bold text-dark">Retention Risks</h5>
-                    <a href="{{ url_for('churn_analysis') }}" class="btn btn-info main-btn">View</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card dashboard-card shadow border-0" style="background:#fff7e6;">
-                <div class="card-body">
-                    <div class="card-title-small text-warning">Demographics</div>
-                    <h5 class="fw-bold text-dark">Customer Profiles</h5>
-                    <a href="{{ url_for('demographic_trends_analysis') }}" 
-                       class="btn btn-warning main-btn">View</a>
-                </div>
-            </div>
-        </div>
-
-    </div>
-    {% endif %}
-
-    <!-- ✅ File Upload Section -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card shadow-lg border-0" style="border-radius:18px;">
-                <div class="card-header bg-white border-0">
-                    <h5 class="fw-bold mb-0">Upload Dataset</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('home') }}" enctype="multipart/form-data">
-                        <div class="input-group">
-                            <input type="file" class="form-control" name="file" accept=".csv" required>
-                            <button class="btn btn-dark" type="submit" style="border-radius:10px;">
-                                Upload File
-                            </button>
-                        </div>
-                        <p class="mt-2 text-muted small">Accepted format: CSV only</p>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<!-- Page Header -->
+<div class="page-header">
+    <h1><i class="fas fa-chart-line me-2"></i>Analytics Dashboard</h1>
+    <p>Comprehensive overview of your market analytics</p>
 </div>
+
+<!-- Quick Stats -->
+<div class="quick-stats">
+    <div class="stat-box">
+        <div class="stat-label">Total Customers</div>
+        <div class="stat-value">{{ total_customers if total_customers else '0' }}</div>
+    </div>
+    <div class="stat-box" style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);">
+        <div class="stat-label">Active Segments</div>
+        <div class="stat-value">{{ active_segments if active_segments else '0' }}</div>
+    </div>
+    <div class="stat-box" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+        <div class="stat-label">Revenue Generated</div>
+        <div class="stat-value">${{ revenue if revenue else '0' }}</div>
+    </div>
+</div>
+
+<!-- Analytics Grid -->
+<div class="analytics-grid">
+    <a href="{{ url_for('overview_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #2563eb;">
+            <i class="fas fa-chart-pie"></i>
+        </div>
+        <h3 class="card-title">Overview Analysis</h3>
+        <p class="card-description">Get a comprehensive view of your customer data and key metrics</p>
+    </a>
+
+    <a href="{{ url_for('rfm_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #7c3aed;">
+            <i class="fas fa-star"></i>
+        </div>
+        <h3 class="card-title">RFM Segmentation</h3>
+        <p class="card-description">Segment customers by Recency, Frequency, and Monetary value</p>
+    </a>
+
+    <a href="{{ url_for('behavior_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #db2777;">
+            <i class="fas fa-user-check"></i>
+        </div>
+        <h3 class="card-title">Behavior Analysis</h3>
+        <p class="card-description">Analyze customer behavior patterns and engagement metrics</p>
+    </a>
+
+    <a href="{{ url_for('product_preference_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #059669;">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <h3 class="card-title">Product Preferences</h3>
+        <p class="card-description">Understand which products your customers prefer</p>
+    </a>
+
+    <a href="{{ url_for('clv_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #ca8a04;">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+        <h3 class="card-title">Customer Lifetime Value</h3>
+        <p class="card-description">Calculate and optimize customer lifetime value</p>
+    </a>
+
+    <a href="{{ url_for('churn_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #dc2626;">
+            <i class="fas fa-user-slash"></i>
+        </div>
+        <h3 class="card-title">Churn Analysis</h3>
+        <p class="card-description">Identify and analyze customer churn patterns</p>
+    </a>
+
+    <a href="{{ url_for('geo_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #0891b2;">
+            <i class="fas fa-globe"></i>
+        </div>
+        <h3 class="card-title">Geographic Analysis</h3>
+        <p class="card-description">Visualize location-based performance and trends</p>
+    </a>
+
+    <a href="{{ url_for('trends_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #4f46e5;">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <h3 class="card-title">Trends Analysis</h3>
+        <p class="card-description">Track and analyze market trends over time</p>
+    </a>
+
+    <a href="{{ url_for('predictive_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #9333ea;">
+            <i class="fas fa-brain"></i>
+        </div>
+        <h3 class="card-title">Predictive Analytics</h3>
+        <p class="card-description">Leverage AI to forecast future trends and patterns</p>
+    </a>
+
+    <a href="{{ url_for('demographic_trends_analysis') }}" class="analytics-card">
+        <div class="card-icon" style="color: #16a34a;">
+            <i class="fas fa-users-cog"></i>
+        </div>
+        <h3 class="card-title">Demographics</h3>
+        <p class="card-description">Analyze demographic trends and segments</p>
+    </a>
+
+    <a href="{{ url_for('results') }}" class="analytics-card">
+        <div class="card-icon" style="color: #64748b;">
+            <i class="fas fa-table"></i>
+        </div>
+        <h3 class="card-title">Raw Data Results</h3>
+        <p class="card-description">View and export your raw customer data</p>
+    </a>
+</div>
+
 {% endblock %}
-
-<script>
-// ✅ Trigger Strategy Chat - Opens chat bubble and sends strategy request
-function triggerStrategyChat() {
-    // Open chat window
-    const chatWindow = document.getElementById('chat-window');
-    const chatBubble = document.getElementById('chat-bubble');
-    
-    if (chatWindow && chatBubble) {
-        chatWindow.style.display = 'flex';
-        
-        // Focus on input and set strategy question
-        setTimeout(() => {
-            const chatInput = document.getElementById('chat-input');
-            if (chatInput) {
-                chatInput.value = "What strategies should I implement based on my customer data?";
-                chatInput.focus();
-                
-                // Auto-send after a brief delay
-                setTimeout(() => {
-                    sendChatMessage();
-                }, 300);
-            }
-        }, 100);
-    }
-}
-
-// ✅ Trigger CLV Explanation Chat
-function triggerCLVChat() {
-    const chatWindow = document.getElementById('chat-window');
-    if (chatWindow) {
-        chatWindow.style.display = 'flex';
-        setTimeout(() => {
-            const chatInput = document.getElementById('chat-input');
-            if (chatInput) {
-                chatInput.value = "Explain the CLV results in simple terms.";
-                chatInput.focus();
-                setTimeout(() => {
-                    sendChatMessage();
-                }, 300);
-            }
-        }, 100);
-    }
-}
-
-// ✅ Trigger Financial Trends Chat
-function triggerTrendsChat() {
-    const chatWindow = document.getElementById('chat-window');
-    if (chatWindow) {
-        chatWindow.style.display = 'flex';
-        setTimeout(() => {
-            const chatInput = document.getElementById('chat-input');
-            if (chatInput) {
-                chatInput.value = "Explain the financial trends and revenue opportunities.";
-                chatInput.focus();
-                setTimeout(() => {
-                    sendChatMessage();
-                }, 300);
-            }
-        }, 100);
-    }
-}
-</script>

@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Market Lens{% endblock %}
+
+{% block content %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+        padding: 4rem 2rem;
+        border-radius: 16px;
+        margin-bottom: 3rem;
+        color: white;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        opacity: 0.95;
+        max-width: 700px;
+        margin: 0 auto 2rem auto;
+        line-height: 1.7;
+        font-weight: 400;
+    }
+
+    /* Upload Section */
+    .upload-card {
+        background: white;
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 3rem 2rem;
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto 3rem auto;
+        transition: all 0.2s;
+    }
+
+    .upload-card:hover {
+        border-color: #2563eb;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+    }
+
+    .upload-icon {
+        width: 80px;
+        height: 80px;
+        background: #dbeafe;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        font-size: 2rem;
+        color: #2563eb;
+    }
+
+    .upload-text {
+        font-size: 1.25rem;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .upload-subtext {
+        font-size: 0.95rem;
+        color: #64748b;
+        margin-bottom: 2rem;
+    }
+
+    .file-input-wrapper {
+        margin-bottom: 1.5rem;
+    }
+
+    .file-label {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: #f1f5f9;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .file-label:hover {
+        background: #e2e8f0;
+        border-color: #cbd5e1;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .file-name {
+        display: inline-block;
+        margin-left: 1rem;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .upload-btn {
+        background: #2563eb;
+        border: none;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        color: white;
+        transition: all 0.2s;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .upload-btn:hover {
+        background: #1d4ed8;
+    }
+
+    /* Features Section */
+    .features-section {
+        padding: 2rem 0 3rem 0;
+    }
+
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        text-align: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: #64748b;
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .feature-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 2rem;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .feature-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+        transform: translateY(-2px);
+    }
+
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: #f1f5f9;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        font-size: 2rem;
+    }
+
+    .feature-card:hover .feature-icon {
+        background: #dbeafe;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+    }
+
+    .feature-description {
+        font-size: 0.95rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <h1 class="hero-title">Welcome to Market Lens</h1>
+    <p class="hero-subtitle">
+        Transform your data into actionable insights with advanced analytics. 
+        Upload your dataset and unlock powerful market intelligence.
+    </p>
+</div>
+
+<!-- Upload Section -->
+<div class="upload-card">
+    <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data">
+        <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <p class="upload-text">Upload Your Data File</p>
+        <p class="upload-subtext">Support for CSV, Excel, and other data formats</p>
+        
+        <div class="file-input-wrapper">
+            <label for="file" class="file-label">
+                <i class="fas fa-folder-open me-2"></i>Choose File
+            </label>
+            <input type="file" id="file" name="file" accept=".csv,.xlsx,.xls" onchange="updateFileName(this)">
+            <span class="file-name" id="fileName">No file chosen</span>
+        </div>
+
+        <button type="submit" class="btn upload-btn">
+            <i class="fas fa-chart-line me-2"></i>Upload and Analyze
+        </button>
+    </form>
+</div>
+
+<!-- Features Section -->
+<div class="features-section">
+    <h2 class="section-title">Powerful Analytics Features</h2>
+    <p class="section-subtitle">Comprehensive tools to understand your market and customers</p>
+
+    <div class="features-grid">
+        <!-- Demographics Card -->
+        <div class="feature-card" onclick="window.location.href='{{ url_for('demographic_trends_analysis') }}'">
+            <div class="feature-icon" style="color: #2563eb;">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="feature-title">Demographics</h3>
+            <p class="feature-description">
+                Understand your customer base through detailed demographic segmentation and analysis.
+            </p>
+        </div>
+
+        <!-- Behavioral Card -->
+        <div class="feature-card" onclick="window.location.href='{{ url_for('behavior_analysis') }}'">
+            <div class="feature-icon" style="color: #7c3aed;">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <h3 class="feature-title">Behavioral Insights</h3>
+            <p class="feature-description">
+                Analyze customer behavior patterns, purchase frequency, and engagement metrics.
+            </p>
+        </div>
+
+        <!-- Predictive Card -->
+        <div class="feature-card" onclick="window.location.href='{{ url_for('predictive_analysis') }}'">
+            <div class="feature-icon" style="color: #db2777;">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h3 class="feature-title">Predictive Analytics</h3>
+            <p class="feature-description">
+                Leverage AI to forecast trends and predict customer lifetime value with precision.
+            </p>
+        </div>
+
+        <!-- Geographic Card -->
+        <div class="feature-card" onclick="window.location.href='{{ url_for('geo_analysis') }}'">
+            <div class="feature-icon" style="color: #059669;">
+                <i class="fas fa-map-marked-alt"></i>
+            </div>
+            <h3 class="feature-title">Geographic Analysis</h3>
+            <p class="feature-description">
+                Visualize location-based performance and identify regional market opportunities.
+            </p>
+        </div>
+
+        <!-- RFM Card -->
+        <div class="feature-card" onclick="window.location.href='{{ url_for('rfm_analysis') }}'">
+            <div class="feature-icon" style="color: #ca8a04;">
+                <i class="fas fa-star"></i>
+            </div>
+            <h3 class="feature-title">RFM Segmentation</h3>
+            <p class="feature-description">
+                Segment customers by Recency, Frequency, and Monetary value for targeted strategies.
+            </p>
+        </div>
+
+        <!-- CLV Card -->
+        <div class="feature-card" onclick="window.location.href='{{ url_for('clv_analysis') }}'">
+            <div class="feature-icon" style="color: #0891b2;">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <h3 class="feature-title">Customer Lifetime Value</h3>
+            <p class="feature-description">
+                Calculate and optimize customer lifetime value to maximize revenue potential.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateFileName(input) {
+        const fileName = document.getElementById('fileName');
+        if (input.files.length > 0) {
+            fileName.textContent = input.files[0].name;
+            fileName.style.color = '#1e293b';
+            fileName.style.fontWeight = '500';
+        } else {
+            fileName.textContent = 'No file chosen';
+            fileName.style.color = '#64748b';
+            fileName.style.fontWeight = '400';
+        }
+    }
+</script>
+{% endblock %}

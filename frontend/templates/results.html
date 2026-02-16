@@ -1,139 +1,183 @@
 {% extends 'base.html' %}
-{% block title %}MARKET LENS - Results{% endblock %}
+{% block title %}Market Lens - Results{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">Results</h1>
-    <p class="text-center text-white-50 mb-4 lead">Summary of all analysis results.</p>
+<div class="page-header">
+    <h1 class="page-header-title">
+        <i class="fas fa-table me-3"></i>Analysis Results
+    </h1>
+    <p class="page-header-subtitle">
+        Comprehensive summary of all analysis results
+    </p>
+</div>
 
-    {% if error %}
-        <div class="alert alert-warning text-center" style="background-color: rgba(255, 193, 7, 0.2); border: 2px solid #ffc107;">
-            <h5 class="text-white">⚠️ {{ error }}</h5>
-            <p class="text-white-50 mt-2">Please upload a CSV file to see results.</p>
-            <a href="{{ url_for('home') }}" class="btn btn-primary mt-2">📤 Upload Data</a>
-        </div>
-    {% elif not results_summary and not combined_charts %}
-        <div class="alert alert-info text-center" style="background-color: rgba(13, 110, 253, 0.2); border: 2px solid #0d6efd;">
-            <h5 class="text-white">📊 No Data Available</h5>
-            <p class="text-white-50 mt-2">Upload a CSV file to generate analysis results.</p>
-            <a href="{{ url_for('home') }}" class="btn btn-primary mt-2">📤 Upload Data</a>
-        </div>
-    {% else %}
-
-    <!-- 🔽 Month Filter -->
-    <form method="GET" action="{{ url_for('results') }}" class="text-center mb-4">
-        <label for="month" class="text-white me-2">Filter by Month:</label>
-        <select name="month" id="month" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
-            <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All</option>
-            {% for month in month_list %}
-                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
-            {% endfor %}
-        </select>
-    </form>
-
-    <!-- 📋 Results Summary -->
-    {% if results_summary %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Results Summary</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <tbody>
-                        <tr>
-                            <th>Total Customers</th>
-                            <td>{{ results_summary.total_customers }}</td>
-                        </tr>
-                        <tr>
-                            <th>Average Spending Score</th>
-                            <td>{{ results_summary.avg_spending }}</td>
-                        </tr>
-                        <tr>
-                            <th>Average Annual Income</th>
-                            <td>${{ results_summary.avg_income }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+{% if error %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>{{ error }}</strong>
+            <p class="mb-0 mt-2">Please upload a CSV file to see results.</p>
         </div>
     </div>
-    {% endif %}
-
-    <!-- 📊 Charts -->
-    {% if combined_charts %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-white text-center">Visual Charts</h5>
-                {% for title, chart in combined_charts.items() %}
-                    <div class="mb-4">
-                        <h6 class="text-white text-center">{{ title }}</h6>
-                        {{ chart | safe }}
-                    </div>
-                {% endfor %}
-            </div>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-primary" style="padding: 12px 32px;">
+            <i class="fas fa-upload me-2"></i>Upload Data
+        </a>
+    </div>
+{% elif not results_summary and not combined_charts %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <strong>No Data Available</strong>
+            <p class="mb-0 mt-2">Upload a CSV file to generate analysis results.</p>
         </div>
-    {% endif %}
+    </div>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-primary" style="padding: 12px 32px;">
+            <i class="fas fa-upload me-2"></i>Upload Data
+        </a>
+    </div>
+{% else %}
 
-    <!-- 📑 Detailed Table -->
-    {% if detailed_results is not none and not detailed_results.empty %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-white text-center">Detailed Results</h5>
-                <div class="table-responsive">
-                    <table id="detailedResultsTable" class="table table-bordered table-striped display">
-                        <thead>
-                            <tr>
-                                {% for col in detailed_results.columns %}
-                                    <th>{{ col }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in detailed_results.values %}
-                                <tr>
-                                    {% for cell in row %}
-                                        <td>{{ cell }}</td>
-                                    {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+<!-- Month Filter -->
+<div class="card">
+    <div class="card-title">
+        <i class="fas fa-calendar-alt me-2"></i>Filter by Month
+    </div>
+    <form method="GET" action="{{ url_for('results') }}" class="row align-items-end">
+        <div class="col-md-9">
+            <label for="month" class="form-label">Select Month</label>
+            <select name="month" id="month" class="form-select">
+                <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All Months</option>
+                {% for month in month_list %}
+                    <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-search"></i> Apply Filter
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Results Summary Cards -->
+{% if results_summary %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-label">Total Customers</div>
+        <div class="stat-value">{{ results_summary.total_customers }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-label">Avg Spending Score</div>
+        <div class="stat-value">{{ results_summary.avg_spending }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-label">Avg Annual Income</div>
+        <div class="stat-value">${{ results_summary.avg_income }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Visual Charts -->
+{% if combined_charts %}
+<div class="analysis-card">
+    <h5 class="card-title">Visual Analytics</h5>
+    <div class="row">
+        {% for title, chart in combined_charts.items() %}
+        <div class="col-lg-6 mb-4">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <h6 style="font-weight: 600; margin-bottom: 16px;">{{ title }}</h6>
+                <div class="chart-container">
+                    {{ chart | safe }}
                 </div>
             </div>
         </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
-        <!-- ⬇️ Download -->
+<!-- Detailed Results Table -->
+{% if detailed_results is not none and not detailed_results.empty %}
+<div class="card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Detailed Results</h5>
         {% if output_file %}
-        <div class="text-center mb-4">
-            <a href="{{ url_for('download_results', filename=output_file) }}" class="btn btn-success">⬇️ Download Results CSV</a>
-        </div>
+        <a href="{{ url_for('download_results', filename=output_file) }}" class="btn btn-success">
+            <i class="fas fa-download me-2"></i>Download CSV
+        </a>
         {% endif %}
-    {% else %}
-        <div class="alert alert-warning text-center">No detailed results available.</div>
-    {% endif %}
-
-    <!-- 🔁 Navigation -->
-    <div class="text-center mt-4">
-        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
     </div>
 
-    {% endif %}
+    <div class="table-responsive">
+        <table id="detailedResultsTable" class="table table-hover display">
+            <thead>
+                <tr>
+                    {% for col in detailed_results.columns %}
+                        <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in detailed_results.values %}
+                    <tr>
+                        {% for cell in row %}
+                            <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>No detailed results available.
+    </div>
+{% endif %}
+
+<!-- Navigation -->
+<div class="text-center mt-4">
+    <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary" style="padding: 12px 32px;">
+        <i class="fas fa-chart-pie me-2"></i>Back to Overview
+    </a>
 </div>
 
-<!-- ✅ DataTables -->
+{% endif %}
+
+<!-- DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
 <script>
-    $(document).ready(function () {
-        if ($('#detailedResultsTable').length) {
-            $('#detailedResultsTable').DataTable({
-                pageLength: 10,
-                lengthChange: true,
-                searching: true,
-                ordering: true,
-                order: [[0, 'asc']]
-            });
-        }
-    });
+$(document).ready(function () {
+    if ($('#detailedResultsTable').length) {
+        $('#detailedResultsTable').DataTable({
+            pageLength: 10,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            order: [[0, 'asc']],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search records..."
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

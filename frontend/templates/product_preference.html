@@ -1,67 +1,96 @@
 {% extends 'base.html' %}
 {% block title %}Market Lens - Product Preference{% endblock %}
+
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">Product Preference Analysis</h1>
+<div class="page-header">
+    <h1 class="page-header-title">
+        <i class="fas fa-shopping-cart me-3"></i>Product Preference Analysis
+    </h1>
+    <p class="page-header-subtitle">
+        Understand customer product preferences and purchasing patterns
+    </p>
+</div>
 
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
+    </div>
+{% endif %}
 
+<!-- Charts Grid -->
+<div class="row">
     {% if pie_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Product Category Distribution</h5>
+    <div class="col-lg-6 mb-4">
+        <div class="analysis-card">
+            <h5 class="card-title">Product Category Distribution</h5>
+            <div class="chart-container">
                 {{ pie_chart | safe }}
             </div>
         </div>
+    </div>
     {% endif %}
 
     {% if bar_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Average Spending Score by Product Category</h5>
+    <div class="col-lg-6 mb-4">
+        <div class="analysis-card">
+            <h5 class="card-title">Average Spending Score by Product Category</h5>
+            <div class="chart-container">
                 {{ bar_chart | safe }}
             </div>
         </div>
-    {% endif %}
-
-    {% if line_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Monthly Product Orders Over Time</h5>
-                {{ line_chart | safe }}
-            </div>
-        </div>
-    {% endif %}
-
-    {% if pref_results is not none and not pref_results.empty %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Preference Results</h5>
-                {{ pref_results.to_html(classes='table table-bordered table-striped table-hover', index=False) | safe }}
-            </div>
-        </div>
-    {% else %}
-        <div class="alert alert-warning text-center">No preference results available.</div>
-    {% endif %}
-
-    {% if segment_summary %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Product Preference Summary</h5>
-                <ul class="list-group">
-                    {% for key, value in segment_summary.items() %}
-                        <li class="list-group-item bg-dark text-white">{{ key }}: {{ value }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
-        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
     </div>
+    {% endif %}
+</div>
+
+{% if line_chart %}
+<div class="analysis-card">
+    <h5 class="card-title">Monthly Product Orders Over Time</h5>
+    <div class="chart-container">
+        {{ line_chart | safe }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Product Preference Summary -->
+{% if segment_summary %}
+<div class="analysis-card">
+    <h5 class="card-title">Product Preference Summary</h5>
+    <div class="stats-grid">
+        {% for key, value in segment_summary.items() %}
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stat-label">{{ key }}</div>
+            <div class="stat-value" style="font-size: 1.5rem;">{{ value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Preference Results Table -->
+{% if pref_results is not none and not pref_results.empty %}
+<div class="card">
+    <h5 class="card-title">Preference Results</h5>
+    <div class="table-responsive">
+        {{ pref_results.to_html(classes='table table-hover', index=False) | safe }}
+    </div>
+</div>
+{% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>No preference results available.
+    </div>
+{% endif %}
+
+<!-- Navigation Buttons -->
+<div class="text-center mt-4">
+    <a href="{{ url_for('home') }}" class="btn btn-secondary me-3">
+        <i class="fas fa-arrow-left me-2"></i>Back to Upload
+    </a>
+    <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary">
+        <i class="fas fa-chart-pie me-2"></i>Back to Overview
+    </a>
 </div>
 {% endblock %}

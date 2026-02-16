@@ -1,25 +1,206 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="container py-4">
-    <h3>Business Strategies Overview</h3>
+{% block title %}Business Strategies - Market Lens AI{% endblock %}
 
-    <div class="card shadow mt-3">
-        <div class="card-body">
-            <h5>Key Insights</h5>
-            <ul>
-                <li>Revenue: ${{ insights.revenue }}</li>
-                <li>Customers: {{ insights.customers }}</li>
-                <li>Orders: {{ insights.orders }}</li>
-            </ul>
+{% block content %}
+<style>
+    .strategies-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .page-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff, #a5b4fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 400;
+    }
+
+    .insights-card {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-radius: 20px;
+        padding: 2.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+    }
+
+    .insights-card:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .card-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-title i {
+        color: #6366f1;
+        font-size: 1.75rem;
+    }
+
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .insight-item {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .insight-item:hover {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.2);
+    }
+
+    .insight-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .insight-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .insight-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        color: #6366f1;
+    }
+
+    .strategy-card {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-radius: 20px;
+        padding: 2.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .strategy-card:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .strategy-content {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 16px;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    @media (max-width: 768px) {
+        .strategies-container {
+            padding: 2rem 1rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+        }
+
+        .insights-card, .strategy-card {
+            padding: 1.5rem;
+        }
+
+        .insights-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="strategies-container">
+    <div class="page-header">
+        <h1 class="page-title">Business Strategies Overview</h1>
+        <p class="page-subtitle">Data-driven insights and strategic recommendations</p>
+    </div>
+
+    <div class="insights-card">
+        <h2 class="card-title">
+            <i class="fas fa-chart-line"></i>
+            Key Insights
+        </h2>
+        <div class="insights-grid">
+            <div class="insight-item">
+                <div class="insight-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="insight-label">Revenue</div>
+                <div class="insight-value">${{ insights.revenue }}</div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="insight-label">Customers</div>
+                <div class="insight-value">{{ insights.customers }}</div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="insight-label">Orders</div>
+                <div class="insight-value">{{ insights.orders }}</div>
+            </div>
         </div>
     </div>
 
-    <div class="card shadow mt-4">
-        <div class="card-body">
-            <h5>Recommended Strategies</h5>
-            <pre>{{ strategy }}</pre>
-        </div>
+    <div class="strategy-card">
+        <h2 class="card-title">
+            <i class="fas fa-lightbulb"></i>
+            Recommended Strategies
+        </h2>
+        <div class="strategy-content">{{ strategy }}</div>
     </div>
 </div>
 {% endblock %}

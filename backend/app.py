@@ -7,22 +7,22 @@ project_root = os.path.dirname(backend_dir)
 
 # 1. Load the key from your .env file
 load_dotenv()  # Load environment variables from .env file
-api_key = os.getenv("GOOGLE_API_KEY")
 
 # Load optional secret env file (gitignored)
 secret_env = os.path.join(backend_dir, '.env.secret')
 if os.path.exists(secret_env):
     load_dotenv(secret_env)
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+# 2. Import Mistral AI Client (FREE - No billing required!)
+from mistral_client import MistralClientWrapper
 
-# 2. Initialize the Gemini "Brain" with Customer Care Persona
-# Temperature 0.45: Warm, human-like responses (not robotic at 0, not too random at 1)
-llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash", 
-    google_api_key=api_key,
-    temperature=0.45
-)
+# 3. Initialize the Mistral AI client
+# Using Mistral-7B-Instruct via Hugging Face (completely FREE!)
+client = MistralClientWrapper()
+
+# Model configuration
+MISTRAL_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"  # FREE model via Hugging Face
+TEMPERATURE = 0.45  # Warm, human-like responses (not robotic at 0, not too random at 1)
 
 from flask import Flask, render_template, request, Response, jsonify, session, send_file, url_for, send_from_directory, redirect
 from functools import wraps
@@ -254,7 +254,7 @@ def create_agent_for_dataframe(df, file_id):
         return None
 
 def query_dataframe_agent(query, file_id):
-    """Execute a natural language query on the uploaded dataframe using simple pandas operations."""
+    """Execute a natural language query on the uploaded dataframe using OpenAI."""
     try:
         if file_id not in dataframe_agents:
             if file_id in uploaded_data:
@@ -266,9 +266,55 @@ def query_dataframe_agent(query, file_id):
         agent_info = dataframe_agents[file_id]
         df = agent_info["dataframe"]
         
-        # Simple query processing - use LLM to generate analysis
-        response = llm.invoke(f"Analyze this dataframe based on the query. Query: {query}\n\nDataframe columns: {df.columns.tolist()}\n\nDataframe info:\n{df.describe().to_string()}")
-        output = response.content if hasattr(response, 'content') else str(response)
+        # Simple query processing - use OpenAI to generate analysis
+        prompt = f"Analyze this dataframe based on the query. Query: {query}\n\nDataframe columns: {df.columns.tolist()}\n\nDataframe info:\n{df.describe().to_string()}"
+        
+        response = client.chat.completions.create(
+            model=MISTRAL_MODEL,
+            messages=[
+                {"role": "system", "content": """You are a professional business data analyst having a conversation with a client.
+
+CRITICAL RULES - YOU MUST FOLLOW THESE:
+1. Write ONLY in plain text - NO markdown symbols ever
+2. DO NOT use asterisks (**), hashtags (###), or dashes (-) for formatting
+3. Write like you're speaking to someone in person
+4. Use regular sentences and paragraphs
+5. If you need to emphasize something, use CAPITAL LETTERS or write it clearly
+
+WRONG (Never do this):
+### **Key Findings**
+- **Mean**: **56.54**
+- This is **important**
+
+RIGHT (Always do this):
+Key Findings
+
+Mean: 56.54
+This is important and worth noting.
+
+Your tone should be:
+- Professional but friendly (like a consultant)
+- Clear and easy to understand
+- Direct and helpful
+- No technical jargon unless necessary
+
+Format your response as simple paragraphs with blank lines between ideas."""},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=TEMPERATURE
+        )
+        
+        # Post-process to remove any markdown that slipped through
+        output = response.choices[0].message.content
+        
+        # Strip markdown formatting
+        output = output.replace('**', '')  # Remove bold markers
+        output = output.replace('###', '')  # Remove headers
+        output = output.replace('##', '')   # Remove headers
+        output = output.replace('#', '')    # Remove headers
+        # Clean up bullet points
+        import re
+        output = re.sub(r'^\s*[-•]\s*', '', output, flags=re.MULTILINE)
         
         return {"result": output}
     except Exception as e:
@@ -868,6 +914,13 @@ def chat():
         # ✅ Smart Segmentation Support Assistant - Customer Care Persona
         system_prompt = """You are the Smart Segmentation Support Assistant, a polite and professional customer care representative. Your goal is to help business owners understand their customer data.
 
+IMPORTANT FORMATTING RULES:
+• Write in natural, conversational language - NO markdown formatting
+• DO NOT use asterisks (**) for bold text
+• DO NOT use hashtags (###) for headers
+• Use plain text only - write like you're having a professional conversation
+• Use emojis sparingly for clarity (👥 customers, 💰 revenue, ⚠️ risks, 🎯 opportunities)
+
 TONE & PERSONALITY:
 • Always be courteous, patient, and helpful
 • Use phrases like 'I would be happy to help,' 'Certainly,' and 'Please let me know if you need more details'
@@ -893,8 +946,7 @@ SAFETY & BOUNDARIES:
 
 COMMUNICATION STYLE:
 • Use simple, business-friendly language
-• Break complex insights into clear bullet points
-• Use emojis for clarity (👥 customers, 💰 revenue, ⚠️ risks, 🎯 opportunities)
+• Write in clear paragraphs, not formatted lists
 • Provide context: explain what the numbers mean and why they matter
 • Suggest next steps when appropriate"""
         
@@ -908,11 +960,26 @@ COMMUNICATION STYLE:
         if chat_history:
             full_message = f"{system_prompt}{context}\n\nConversation history:\n{chat_history}\n\nLatest user message: {user_message}"
         
-        # Use the LLM to generate response
-        response = llm.invoke(full_message)
+        # Use Mistral AI to generate response
+        response = client.chat.completions.create(
+            model=MISTRAL_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"{context}\n\n{chat_history}\n\nUser message: {user_message}"}
+            ],
+            temperature=TEMPERATURE
+        )
         
         # Extract text from response
-        ai_response = response.content if hasattr(response, 'content') else str(response)
+        ai_response = response.choices[0].message.content
+        
+        # Post-process to remove any markdown that slipped through
+        import re
+        ai_response = ai_response.replace('**', '')  # Remove bold markers
+        ai_response = ai_response.replace('###', '')  # Remove headers
+        ai_response = ai_response.replace('##', '')   # Remove headers
+        ai_response = ai_response.replace('#', '')    # Remove headers
+        ai_response = re.sub(r'^\s*[-•]\s*', '', ai_response, flags=re.MULTILINE)  # Clean up bullet points
         
         # ✅ Save AI response to memory for future context
         memory.save_context({"input": user_message}, {"output": ai_response})

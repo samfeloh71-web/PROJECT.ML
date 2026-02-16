@@ -1,48 +1,119 @@
 {% extends 'base.html' %}
 {% block title %}Market Lens - Overview{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-12">
-            <h1 class="mb-4">Overview Analysis</h1>
-            {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-            {% else %}
-                {% if raw_data is not none and not raw_data.empty %}
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Raw Data</h5>
-                            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
-                                {{ raw_data.to_html(classes='table table-bordered table-striped table-hover', index=True, table_id='raw-data-table') | safe }}
-                            </div>
-                        </div>
-                    </div>
-                {% else %}
-                    <p class="text-muted">No raw data available.</p>
-                {% endif %}
-            {% endif %}
-            <div class="text-center mt-4">
-                <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Upload</a>
+<div class="page-header">
+    <h1 class="page-header-title">Analytics Overview</h1>
+    <p class="page-header-subtitle">Comprehensive insights and analysis of your customer data</p>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
+    </div>
+{% endif %}
+
+<!-- Summary Statistics -->
+{% if summary %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-label">Total Customers</div>
+        <div class="stat-value">{{ summary.total_customers }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-label">Avg Spending Score</div>
+        <div class="stat-value">{{ summary.avg_spending }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-label">Avg Annual Income</div>
+        <div class="stat-value">${{ summary.avg_income }}</div>
+    </div>
+
+    {% if summary.most_common_region %}
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="stat-label">Top Region</div>
+        <div class="stat-value" style="font-size: 1.5rem;">{{ summary.most_common_region }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Month Filter -->
+{% if month_list %}
+<div class="card">
+    <div class="card-title">
+        <i class="fas fa-filter me-2"></i>Filter Data
+    </div>
+    <form method="GET" action="{{ url_for('overview_analysis') }}">
+        <div class="row align-items-end">
+            <div class="col-md-9">
+                <label for="month" class="form-label">Select Month</label>
+                <select name="month" id="month" class="form-select">
+                    <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All Months</option>
+                    {% for month in month_list %}
+                        <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-search"></i> Apply Filter
+                </button>
             </div>
         </div>
+    </form>
+</div>
+{% endif %}
+
+<!-- Visualizations -->
+{% if charts %}
+<div class="analysis-section">
+    <h3 class="mb-4" style="font-weight: 700; color: #1e293b;">
+        <i class="fas fa-chart-bar me-2" style="color: #2563eb;"></i> Visual Analytics
+    </h3>
+    <div class="row">
+        {% for title, chart in charts.items() %}
+        <div class="col-lg-6 mb-4">
+            <div class="analysis-card">
+                <h5 class="card-title">{{ title }}</h5>
+                <div class="chart-container">
+                    {{ chart | safe }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
-{% endblock %}
-{% block scripts %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const table = document.getElementById('raw-data-table');
-            if (table) {
-                // Adjust column widths dynamically based on content
-                const thElements = table.getElementsByTagName('th');
-                for (let th of thElements) {
-                    th.style.minWidth = '150px'; // Minimum width for readability
-                    th.style.maxWidth = '300px'; // Prevent overly wide columns
-                }
+{% endif %}
 
-                // Ensure table headers stay visible on scroll
-                table.style.display = 'block'; // Override default table display
-            }
-        });
-    </script>
+<!-- Action Buttons -->
+<div class="text-center mt-5">
+    <a href="{{ url_for('home') }}" class="btn btn-secondary me-3">
+        <i class="fas fa-arrow-left"></i> Back to Upload
+    </a>
+    <a href="{{ url_for('rfm_analysis') }}" class="btn btn-primary me-2">
+        <i class="fas fa-chart-line"></i> RFM Analysis
+    </a>
+    <a href="{{ url_for('clv_analysis') }}" class="btn btn-primary me-2">
+        <i class="fas fa-dollar-sign"></i> CLV Analysis
+    </a>
+    <a href="{{ url_for('trends_analysis') }}" class="btn btn-primary">
+        <i class="fas fa-chart-area"></i> Trends
+    </a>
+</div>
 {% endblock %}

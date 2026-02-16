@@ -1,119 +1,221 @@
 {% extends 'base.html' %} 
-{% block title %}MARKET LENS - RFM Analysis{% endblock %}
+{% block title %}RFM Analysis - Market Lens{% endblock %}
+
 {% block content %}
-
-<div class="container-fluid mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">RFM Analysis</h1>
-    <p class="text-center text-white">Recency, Frequency, and Monetary value analysis of customers.</p>
-
-    <!-- 🔽 Segment Filter Dropdown -->
-    {% if table %}
-    <form method="GET" action="{{ url_for('rfm_analysis') }}" id="segment-form">
-        <div class="text-center mb-3">
-            <label for="segment" class="text-white me-2">Filter by Segment:</label>
-            <select name="segment" id="segment" onchange="submitWithDate()" class="form-select d-inline-block" style="max-width: 250px;">
-                {% for seg in ['All', 'Champions', 'Loyal Customers', 'Frequent Buyers', 'Big Spenders', 'At Risk', 'Others'] %}
-                    <option value="{{ seg }}" {% if selected_segment == seg %}selected{% endif %}>{{ seg }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </form>
-    {% endif %}
-
-    <!-- 🔄 Analysis Date Form (Preserves segment filter in action URL) -->
-    <form method="POST" action="{{ url_for('rfm_analysis', segment=selected_segment) }}" id="date-form">
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Select Analysis Date:</h5>
-                <input type="date" name="analysis_date" id="analysis_date" class="form-control mb-2" style="max-width: 300px; margin: 0 auto;" value="{{ analysis_date|default('') }}">
-                <button type="submit" class="btn btn-primary">Analyze</button>
-            </div>
-        </div>
-    </form>
-
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
-
-    {% if pie_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">RFM Segment Distribution</h5>
-                {{ pie_chart | safe }}
-            </div>
-        </div>
-    {% endif %}
-
-    {% if bar_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Average Monetary Value by Segment</h5>
-                {{ bar_chart | safe }}
-            </div>
-        </div>
-    {% endif %}
-
-    {% if table %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-white text-center">RFM Data Table (Filtered)</h5>
-
-                <!-- ✅ CSV Download Button -->
-                <div class="text-center mb-3">
-                    <a href="{{ download_link }}" download class="btn btn-success">
-                        ⬇️ Download Full RFM CSV
-                    </a>
-                </div>
-
-                <!-- ✅ Responsive Table -->
-                <div class="table-responsive">
-                    {{ table | safe }}
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-    {% if not pie_chart and not bar_chart and not table and not error %}
-        <div class="alert alert-info text-center">Please submit the form to view RFM analysis results.</div>
-    {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Upload</a>
-        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary mx-2">Back to Overview</a>
-        <a href="{{ url_for('demographic_trends_analysis') }}" class="btn btn-secondary">Demographic Analysis</a>
-    </div>
+<div class="page-header">
+    <h1 class="page-header-title">RFM Analysis</h1>
+    <p class="page-header-subtitle">Recency, Frequency, Monetary value segmentation of your customers</p>
 </div>
 
-<!-- ✅ DataTables Styling and Script -->
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
+    </div>
+{% endif %}
+
+<!-- Filter Section -->
+<div class="card">
+    <div class="card-title">
+        <i class="fas fa-filter me-2"></i>Filter & Analysis Options
+    </div>
+    <form method="POST" id="rfmForm">
+        <div class="row align-items-end">
+            <div class="col-md-5">
+                <label for="segment" class="form-label">Select RFM Segment</label>
+                <select name="segment" id="segment" class="form-select">
+                    <option value="All">All Segments</option>
+                    <option value="Champions">Champions</option>
+                    <option value="Loyal">Loyal Customers</option>
+                    <option value="Potential Loyalist">Potential Loyalist</option>
+                    <option value="At Risk">At Risk</option>
+                    <option value="Lost">Lost</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="analysis_date" class="form-label">Analysis Date</label>
+                <input type="date" id="analysis_date" name="analysis_date" class="form-control" 
+                       value="{{ request.form.get('analysis_date', '') }}">
+            </div>
+            <div class="col-md-2">
+                <button type="button" onclick="submitWithDate()" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-search"></i> Analyze
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- RFM Summary Statistics -->
+{% if rfm_summary %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-label">Total Customers</div>
+        <div class="stat-value">{{ rfm_summary.total_customers }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-trophy"></i>
+        </div>
+        <div class="stat-label">Champions</div>
+        <div class="stat-value">{{ rfm_summary.champions }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-heart"></i>
+        </div>
+        <div class="stat-label">Loyal Customers</div>
+        <div class="stat-value">{{ rfm_summary.loyal }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-label">At Risk</div>
+        <div class="stat-value">{{ rfm_summary.at_risk }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Visualizations -->
+{% if pie_chart or bar_chart %}
+<div class="analysis-section">
+    <h3 class="mb-4" style="font-weight: 700; color: #1e293b;">
+        <i class="fas fa-chart-pie me-2" style="color: #2563eb;"></i> RFM Visualizations
+    </h3>
+    <div class="row">
+        <!-- Pie Chart -->
+        {% if pie_chart %}
+        <div class="col-lg-6 mb-4">
+            <div class="analysis-card">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-pie me-2"></i>RFM Segment Distribution
+                </h5>
+                <div class="chart-container">
+                    {{ pie_chart | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bar Chart -->
+        {% if bar_chart %}
+        <div class="col-lg-6 mb-4">
+            <div class="analysis-card">
+                <h5 class="card-title">
+                    <i class="fas fa-dollar-sign me-2"></i>Average Monetary Value by Segment
+                </h5>
+                <div class="chart-container">
+                    {{ bar_chart | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Data Table -->
+{% if table %}
+<div class="card mt-4">
+    <div class="card-title">
+        <i class="fas fa-table me-2"></i>RFM Data Table
+        {% if download_link %}
+        <a href="{{ download_link }}" download class="btn btn-success btn-sm float-end">
+            <i class="fas fa-download"></i> Download CSV
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            {{ table | safe }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- No Data Message -->
+{% if not pie_chart and not bar_chart and not table and not error %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-chart-bar fa-4x mb-3" style="color: #cbd5e1;"></i>
+        <h4 style="color: #64748b;">No RFM Analysis Results Yet</h4>
+        <p style="color: #94a3b8;">Please select your filters and click "Analyze" to view RFM segmentation results.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Navigation Buttons -->
+<div class="text-center mt-5">
+    <a href="{{ url_for('home') }}" class="btn btn-secondary me-3">
+        <i class="fas fa-arrow-left"></i> Back to Upload
+    </a>
+    <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary me-2">
+        <i class="fas fa-eye"></i> Overview
+    </a>
+    <a href="{{ url_for('demographic_trends_analysis') }}" class="btn btn-primary me-2">
+        <i class="fas fa-users"></i> Demographics
+    </a>
+    <a href="{{ url_for('clv_analysis') }}" class="btn btn-primary me-2">
+        <i class="fas fa-dollar-sign"></i> CLV Analysis
+    </a>
+    <a href="{{ url_for('churn_analysis') }}" class="btn btn-primary">
+        <i class="fas fa-user-minus"></i> Churn Analysis
+    </a>
+</div>
+
+<!-- DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
 <script>
+    // Initialize DataTables
     $(document).ready(function () {
         $('#rfmTable').DataTable({
             pageLength: 10,
             lengthChange: true,
             searching: true,
-            ordering: true
+            ordering: true,
+            order: [[3, 'desc']], // Sort by Monetary column by default
+            language: {
+                search: "Search customers:",
+                lengthMenu: "Show _MENU_ customers per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ customers",
+                paginate: {
+                    first: "First",
+                    last: "Last",
+                    next: "Next",
+                    previous: "Previous"
+                }
+            }
         });
     });
 
+    // Form submission function with date
     function submitWithDate() {
         const selectedDate = document.getElementById('analysis_date').value;
         const selectedSegment = document.getElementById('segment').value;
-        const form = document.createElement('form');
-        form.method = 'POST';
+        const form = document.getElementById('rfmForm');
+        
+        // Update form action with segment parameter
         form.action = `?segment=${selectedSegment}`;
-
-        const dateInput = document.createElement('input');
-        dateInput.type = 'hidden';
-        dateInput.name = 'analysis_date';
-        dateInput.value = selectedDate;
-
-        form.appendChild(dateInput);
-        document.body.appendChild(form);
         form.submit();
     }
+
+    // Allow Enter key to submit
+    document.getElementById('rfmForm').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitWithDate();
+        }
+    });
 </script>
 
 {% endblock %}

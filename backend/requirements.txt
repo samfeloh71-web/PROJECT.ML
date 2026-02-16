@@ -1,12 +1,11 @@
-Flask>=3.0.0
-python-dotenv>=1.0.0
-pandas>=2.0.0
-plotly>=5.17.0
-langchain>=0.1.0
-langchain-google-genai>=0.0.8
-langchain-community>=0.0.10
-langchain-experimental>=0.0.37
-google-generativeai>=0.3.0
-werkzeug>=3.0.0
-pymongo>=4.6.0
-scikit-learn>=1.3.0
+python-dotenv==1.2.1
+Flask==3.1.2
+pymongo==4.16.0
+pandas==3.0.0
+plotly==6.5.2
+scikit-learn==1.8.0
+Werkzeug==3.1.5
+flask-cors==6.0.2
+# Mistral AI via Hugging Face (FREE - No Billing Required!)
+huggingface-hub==0.26.5
+requests==2.32.3

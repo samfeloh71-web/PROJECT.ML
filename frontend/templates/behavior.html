@@ -1,113 +1,75 @@
 {% extends 'base.html' %}
-{% block title %}MARKET LENS - Behavior Analysis{% endblock %}
+{% block title %}Behavior Analysis - Market Lens{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">
-        Behavior Analysis
-    </h1>
-    <p class="text-center text-white">Visual representation of customer behavior insights.</p>
+<style>
+    .chart-container {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
 
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% else %}
+    .chart-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
 
-        <!-- 🔽 Segment Filter -->
-        <form method="GET" action="{{ url_for('behavior_analysis') }}" class="text-center mb-4">
-            <label for="segment" class="text-white me-2">Filter by Behavior Type:</label>
-            <select name="segment" id="segment" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
-                {% for seg in ['All', 'Frequent Buyer', 'Two-Time Buyer', 'One-Time Buyer'] %}
-                    <option value="{{ seg }}" {% if selected_segment == seg %}selected{% endif %}>{{ seg }}</option>
-                {% endfor %}
-            </select>
-        </form>
+    .btn-group {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+</style>
 
-        {% if pie_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Customer Behavior Types</h5>
-                {{ pie_chart | safe }}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if bar_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Average Order Count per Behavior Type</h5>
-                {{ bar_chart | safe }}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if line_chart %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title text-white">Total Orders Over Time</h5>
-                {{ line_chart | safe }}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if table %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-white text-center">Behavior Results Table</h5>
-
-                <!-- ✅ CSV Download Button -->
-                <div class="text-center mb-3">
-                    <a href="{{ download_link }}" download class="btn btn-success">
-                        ⬇️ Download Full Behavior CSV
-                    </a>
-                </div>
-
-                <!-- ✅ Table with Pagination via DataTables -->
-                <div class="table-responsive">
-                    {{ table | safe }}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if segment_summary %}
-        <div class="card analysis-card mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-white text-center">Behavior Summary Analysis</h5>
-                <ul class="list-group list-group-flush">
-                    {% for key, value in segment_summary.items() %}
-                        <li class="list-group-item bg-dark text-white d-flex justify-content-between">
-                            <strong>{{ key }}</strong>
-                            <span>{{ value }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        {% endif %}
-
-    {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Upload</a>
-        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary mx-2">Back to Overview</a>
-        <a href="{{ url_for('rfm_analysis') }}" class="btn btn-secondary">RFM Analysis</a>
-    </div>
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-header-title"><i class="fas fa-user-check me-2"></i>Behavior Analysis</h1>
+    <p class="page-header-subtitle">Visual representation of customer behavior insights</p>
 </div>
 
-<!-- ✅ DataTables Scripts -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% else %}
+    <!-- Action Buttons -->
+    <div class="btn-group">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary">
+            <i class="fas fa-chart-pie me-2"></i>Overview Analysis
+        </a>
+        <a href="{{ url_for('rfm_analysis') }}" class="btn btn-primary">
+            <i class="fas fa-chart-line me-2"></i>RFM Analysis
+        </a>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-container">
+                <h3 class="chart-title">Customer Behavior Visualization</h3>
+                <div id="behavior-chart"></div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% if chart_json %}
 <script>
-$(document).ready(function() {
-    $('#behaviorTable').DataTable({
-        pageLength: 10,
-        lengthMenu: [10, 25, 50, 100],
-        lengthChange: true,
-        searching: true,
-        ordering: true,
-        responsive: true
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = {{ chart_json | safe }};
+        Plotly.newPlot('behavior-chart', chartData.data, chartData.layout, {
+            responsive: true,
+            displayModeBar: true
+        });
     });
-});
 </script>
+{% endif %}
 {% endblock %}

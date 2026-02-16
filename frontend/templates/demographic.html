@@ -1,75 +1,110 @@
 {% extends 'base.html' %}
-{% block title %}MARKET LENS - Demographic Trends{% endblock %}
+{% block title %}Market Lens - Demographic Trends{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.6);">Demographic Trends</h1>
-
-    <!-- 🔽 Month Filter -->
-    <form method="GET" action="{{ url_for('demographic_trends_analysis') }}" class="text-center mb-4">
-        <label for="month" class="text-white me-2">Filter by Month:</label>
-        <select name="month" id="month" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
-            <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All</option>
-            {% for month in month_list %}
-                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
-            {% endfor %}
-        </select>
-    </form>
-
-    <!-- 🔴 Error -->
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
-
-    <!-- 📊 Visualizations -->
-    {% if visualizations %}
-        {% for viz in visualizations %}
-            <div class="card mb-4">
-                <div class="card-header"><h5 class="mb-0">{{ viz.title }}</h5></div>
-                <div class="card-body">{{ viz.chart | safe }}</div>
-            </div>
-        {% endfor %}
-    {% endif %}
-
-    <!-- 📋 Demographic Trends Table -->
-    {% if demo_results %}
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Trend Summary Table</h5></div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    {{ demo_results | safe }}
-                </div>
-            </div>
-        </div>
-
-        <!-- ⬇️ Download Link -->
-        {% if download_link %}
-            <div class="text-center mb-4">
-                <a href="{{ download_link }}" class="btn btn-success">⬇️ Download Demographic Trends CSV</a>
-            </div>
-        {% endif %}
-    {% else %}
-        <div class="alert alert-info text-center">No demographic trends results available.</div>
-    {% endif %}
-
-    <!-- 🔁 Navigation -->
-    <div class="text-center mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Upload</a>
-    </div>
+<div class="page-header">
+    <h1 class="page-header-title">
+        <i class="fas fa-users-cog me-3"></i>Demographic Trends
+    </h1>
+    <p class="page-header-subtitle">
+        Deep dive into customer demographics and behavioral patterns
+    </p>
 </div>
 
-<!-- ✅ Scripts -->
+<!-- Month Filter Card -->
+<div class="card">
+    <div class="card-title">
+        <i class="fas fa-calendar-alt me-2"></i>Filter by Month
+    </div>
+    <form method="GET" action="{{ url_for('demographic_trends_analysis') }}" class="row align-items-end">
+        <div class="col-md-9">
+            <label for="month" class="form-label">Select Month</label>
+            <select name="month" id="month" class="form-select">
+                <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All Months</option>
+                {% for month in month_list %}
+                    <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-search"></i> Apply Filter
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Error Alert -->
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
+    </div>
+{% endif %}
+
+<!-- Visualizations -->
+{% if visualizations %}
+    {% for viz in visualizations %}
+        <div class="analysis-card">
+            <h5 class="card-title">{{ viz.title }}</h5>
+            <div class="chart-container">
+                {{ viz.chart | safe }}
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Demographic Trends Table -->
+{% if demo_results %}
+    <div class="card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Trend Summary Table</h5>
+            {% if download_link %}
+            <a href="{{ download_link }}" class="btn btn-success">
+                <i class="fas fa-download me-2"></i>Download CSV
+            </a>
+            {% endif %}
+        </div>
+        
+        <div class="table-responsive">
+            {{ demo_results | safe }}
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No demographic trends results available.
+    </div>
+{% endif %}
+
+<!-- Navigation Button -->
+<div class="text-center mt-4">
+    <a href="{{ url_for('home') }}" class="btn btn-secondary me-3">
+        <i class="fas fa-arrow-left me-2"></i>Back to Upload
+    </a>
+    <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary">
+        <i class="fas fa-chart-pie me-2"></i>Back to Overview
+    </a>
+</div>
+
+<!-- DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
 <script>
     $(document).ready(function () {
-        $('#demographicTrendsTable').DataTable({
-            pageLength: 10,
-            lengthChange: true,
-            searching: true,
-            ordering: true
-        });
+        if ($('#demographicTrendsTable').length) {
+            $('#demographicTrendsTable').DataTable({
+                pageLength: 10,
+                lengthChange: true,
+                searching: true,
+                ordering: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search records..."
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

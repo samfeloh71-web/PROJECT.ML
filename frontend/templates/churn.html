@@ -1,111 +1,127 @@
 {% extends 'base.html' %}
-{% block title %}MARKET LENS - Churn Analysis{% endblock %}
+{% block title %}Churn Analysis - Market Lens{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">
-        Churn Analysis
-    </h1>
-    <p class="text-center text-white-50 mb-4 lead">
-        Customer churn analysis based on spending score segmentation.
-    </p>
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
 
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
+    .stat-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
 
-    <!-- 🔽 Churn Risk Filter -->
-    <form method="GET" action="{{ url_for('churn_analysis') }}" class="text-center mb-4">
-        <label for="risk" class="text-white me-2">Filter by Churn Risk:</label>
-        <select name="risk" id="risk" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
-            {% for risk in ['All', 'High', 'Medium', 'Low'] %}
-                <option value="{{ risk }}" {% if request.args.get('risk') == risk %}selected{% endif %}>{{ risk }}</option>
-            {% endfor %}
-        </select>
-    </form>
+    .stat-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
 
-    {% if churn_pie_chart %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Churn Risk Distribution</h5>
-            {{ churn_pie_chart | safe }}
-        </div>
-    </div>
-    {% endif %}
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
 
-    {% if churn_bar_chart %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Average Spending by Churn Risk</h5>
-            {{ churn_bar_chart | safe }}
-        </div>
-    </div>
-    {% endif %}
+    .stat-icon {
+        float: right;
+        font-size: 2rem;
+        color: #cbd5e1;
+    }
 
-    {% if churn_line_chart %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Spending Trend by Customer</h5>
-            {{ churn_line_chart | safe }}
-        </div>
-    </div>
-    {% endif %}
+    .chart-container {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
 
-    {% if churn_summary %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Churn Summary</h5>
-            <ul class="list-group list-group-flush">
-                {% for key, value in churn_summary.items() %}
-                <li class="list-group-item bg-dark text-white d-flex justify-content-between">
-                    <strong>{{ key }}</strong>
-                    <span>{{ value }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    {% endif %}
+    .chart-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
 
-    {% if churn_results is not none and not churn_results.empty %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body">
-            <h5 class="card-title text-white text-center">Churn Results Table</h5>
+    .btn-group {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+</style>
 
-            <div class="text-center mb-3">
-                <a href="{{ download_link }}" download class="btn btn-success">
-                    ⬇️ Download Filtered Churn CSV
-                </a>
-            </div>
-
-            <div class="table-responsive">
-                {{ churn_results.to_html(classes='table table-bordered table-striped table-hover display', index=False, table_id='churnTable') | safe }}
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="alert alert-warning text-center">No churn results available. Please upload a valid CSV.</div>
-    {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
-        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
-    </div>
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-header-title"><i class="fas fa-user-slash me-2"></i>Churn Analysis</h1>
+    <p class="page-header-subtitle">Identify and analyze customer churn patterns</p>
 </div>
 
-<!-- ✅ DataTables Scripts -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% else %}
+    <!-- Action Buttons -->
+    <div class="btn-group">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary">
+            <i class="fas fa-chart-pie me-2"></i>Overview Analysis
+        </a>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="stat-label">Total Customers</div>
+            <div class="stat-value">{{ total_customers if total_customers else '0' }}</div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-user-times stat-icon" style="color: #dc2626;"></i>
+            <div class="stat-label">Churned Customers</div>
+            <div class="stat-value" style="color: #dc2626;">{{ churned_customers if churned_customers else '0' }}</div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-percentage stat-icon" style="color: #f59e0b;"></i>
+            <div class="stat-label">Churn Rate</div>
+            <div class="stat-value" style="color: #f59e0b;">{{ churn_rate if churn_rate else '0%' }}</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-container">
+                <h3 class="chart-title">Churn Analysis Visualization</h3>
+                <div id="churn-chart"></div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% if chart_json %}
 <script>
-$(document).ready(function() {
-    $('#churnTable').DataTable({
-        pageLength: 10,
-        lengthChange: true,
-        searching: true,
-        ordering: true,
-        order: [[1, 'desc']]  // Adjust depending on column order (e.g. if CustomerName is added)
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = {{ chart_json | safe }};
+        Plotly.newPlot('churn-chart', chartData.data, chartData.layout, {
+            responsive: true,
+            displayModeBar: true
+        });
     });
-});
 </script>
+{% endif %}
 {% endblock %}

@@ -1,92 +1,132 @@
 {% extends 'base.html' %}
-{% block title %}MARKET LENS - Trends Analysis{% endblock %}
+{% block title %}Market Lens - Trends Analysis{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1 class="text-center mb-4 text-white" style="text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);">Trends Analysis</h1>
-    <p class="text-center text-white-50 mb-4 lead">Customer trends analysis over time.</p>
+<div class="page-header">
+    <h1 class="page-header-title">
+        <i class="fas fa-chart-bar me-3"></i>Trends Analysis
+    </h1>
+    <p class="page-header-subtitle">
+        Customer trends and temporal patterns over time
+    </p>
+</div>
 
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
-
-    <!-- 🔽 Month Filter -->
-    <form method="GET" action="{{ url_for('trends_analysis') }}" class="text-center mb-4">
-        <label for="month" class="text-white me-2">Filter by Month:</label>
-        <select name="month" id="month" onchange="this.form.submit()" class="form-select d-inline-block" style="max-width: 250px;">
-            <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All</option>
-            {% if trends_results is not none %}
-                {% for row in trends_results['Month'] %}
-                    <option value="{{ row }}" {% if selected_month == row %}selected{% endif %}>{{ row }}</option>
-                {% endfor %}
-            {% endif %}
-        </select>
-    </form>
-
-    {% if pie_chart %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Customer Purchase Share by Month</h5>
-            {{ pie_chart | safe }}
-        </div>
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
     </div>
-    {% endif %}
+{% endif %}
 
-    {% if line_chart %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Purchase Trends Over Time</h5>
-            {{ line_chart | safe }}
+<!-- Month Filter Card -->
+<div class="card">
+    <div class="card-title">
+        <i class="fas fa-calendar-alt me-2"></i>Filter by Month
+    </div>
+    <form method="GET" action="{{ url_for('trends_analysis') }}" class="row align-items-end">
+        <div class="col-md-9">
+            <label for="month" class="form-label">Select Month</label>
+            <select name="month" id="month" class="form-select">
+                <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All Months</option>
+                {% if trends_results is not none %}
+                    {% for row in trends_results['Month'] %}
+                        <option value="{{ row }}" {% if selected_month == row %}selected{% endif %}>{{ row }}</option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-search"></i> Apply Filter
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Charts Grid -->
+<div class="row">
+    {% if pie_chart %}
+    <div class="col-lg-6 mb-4">
+        <div class="analysis-card">
+            <h5 class="card-title">Customer Purchase Share by Month</h5>
+            <div class="chart-container">
+                {{ pie_chart | safe }}
+            </div>
         </div>
     </div>
     {% endif %}
 
     {% if bar_chart %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body text-center">
-            <h5 class="card-title text-white">Customer Count by Month</h5>
-            {{ bar_chart | safe }}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if trends_results is not none and not trends_results.empty %}
-    <div class="card analysis-card mb-4">
-        <div class="card-body">
-            <h5 class="card-title text-white text-center">Trends Results Table</h5>
-
-            <div class="text-center mb-3">
-                <a href="{{ download_link }}" class="btn btn-success" download>⬇️ Download Trends CSV</a>
-            </div>
-
-            <div class="table-responsive">
-                {{ trends_results.to_html(classes='table table-bordered table-striped table-hover display', index=False, table_id='trendsTable') | safe }}
+    <div class="col-lg-6 mb-4">
+        <div class="analysis-card">
+            <h5 class="card-title">Customer Count by Month</h5>
+            <div class="chart-container">
+                {{ bar_chart | safe }}
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-warning text-center">No trends results available. Please upload a valid CSV with a Date or PurchaseDate column.</div>
     {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary me-2">Back to Upload</a>
-        <a href="{{ url_for('overview_analysis') }}" class="btn btn-secondary">Back to Overview</a>
-    </div>
 </div>
 
-<!-- ✅ DataTables Scripts -->
+{% if line_chart %}
+<div class="analysis-card">
+    <h5 class="card-title">Purchase Trends Over Time</h5>
+    <div class="chart-container">
+        {{ line_chart | safe }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Trends Results Table -->
+{% if trends_results is not none and not trends_results.empty %}
+<div class="card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Trends Results Table</h5>
+        <a href="{{ download_link }}" class="btn btn-success" download>
+            <i class="fas fa-download me-2"></i>Download CSV
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        {{ trends_results.to_html(classes='table table-hover display', index=False, table_id='trendsTable') | safe }}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>No trends results available. Please upload a valid CSV with a Date or PurchaseDate column.
+</div>
+{% endif %}
+
+<!-- Navigation Buttons -->
+<div class="text-center mt-4">
+    <a href="{{ url_for('home') }}" class="btn btn-secondary me-3">
+        <i class="fas fa-arrow-left me-2"></i>Back to Upload
+    </a>
+    <a href="{{ url_for('overview_analysis') }}" class="btn btn-primary">
+        <i class="fas fa-chart-pie me-2"></i>Back to Overview
+    </a>
+</div>
+
+<!-- DataTables Scripts -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
 <script>
 $(document).ready(function() {
-    $('#trendsTable').DataTable({
-        pageLength: 10,
-        lengthChange: true,
-        searching: true,
-        ordering: true,
-        order: [[0, 'asc']]
-    });
+    if ($('#trendsTable').length) {
+        $('#trendsTable').DataTable({
+            pageLength: 10,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            order: [[0, 'asc']],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search records..."
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
