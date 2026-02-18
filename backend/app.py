@@ -24,7 +24,8 @@ client = MistralClientWrapper()
 MISTRAL_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"  # FREE model via Hugging Face
 TEMPERATURE = 0.45  # Warm, human-like responses (not robotic at 0, not too random at 1)
 
-from flask import Flask, render_template, request, Response, jsonify, session, send_file, url_for, send_from_directory, redirect
+from flask import Flask, render_template, request, Response, jsonify, session, send_file, url_for, send_from_directory, redirect, flash
+from markupsafe import Markup
 from functools import wraps
 
 def login_required(f):
@@ -691,13 +692,8 @@ def generate_progress(file_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Simple login route using hashed passwords stored in users.json.
-
-    - Loads users from `app.config['USERS_FILE']` (JSON) on demand.
-    - Expects JSON structure: {"username": {"password": "<hashed>", "role": "CEO"}}.
-    - On successful login stores `session['user']` and `session['role']`.
-    """
-    # Load users from file if not in memory
+    """Login existing users by verifying credentials from users.json - simplified to only ask username, password, role"""
+    
     def load_users():
         users = app.config.get('USERS')
         if users is None:
@@ -711,6 +707,107 @@ def login():
             app.config['USERS'] = users
         return app.config['USERS']
 
+    error = None
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role')
+
+        # Validation: Check required fields (only username, password, role)
+        if not username or not password or not role:
+            error = 'Please fill all fields.'
+            return render_template('login.html', error=error)
+
+        users = load_users()
+
+        # Check if user exists
+        if username not in users:
+            error = 'Invalid username or password.'
+            return render_template('login.html', error=error)
+
+        user_data = users[username]
+
+        # Verify password
+        if not check_password_hash(user_data['password'], password):
+            error = 'Invalid username or password.'
+            return render_template('login.html', error=error)
+
+        # Verify role matches
+        if user_data.get('role') != role:
+            error = 'Invalid role selected for this user.'
+            return render_template('login.html', error=error)
+
+        # Successful login - Set session with all user data from database
+        session['user'] = username
+        session['role'] = user_data.get('role', 'Company Analyst')
+        session['email'] = user_data.get('email', '')
+        session['business_name'] = user_data.get('business_name', '')
+        session['business_category'] = user_data.get('business_category', '')
+        session['login_time'] = datetime.now().isoformat()
+
+        return redirect(url_for('home'))
+
+    # GET request: render login form
+    return render_template('login.html', error=None)
+
+
+@app.route('/logout')
+def logout():
+    # Clear all session data
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/api/get_business_info/<username>', methods=['GET'])
+def get_business_info(username):
+    """API endpoint to fetch business information for a username (for login auto-population)"""
+    try:
+        users = {}
+        if os.path.exists(app.config['USERS_FILE']):
+            with open(app.config['USERS_FILE'], 'r', encoding='utf-8') as f:
+                users = json.load(f)
+        
+        if username in users:
+            user_data = users[username]
+            return jsonify({
+                'success': True,
+                'business_name': user_data.get('business_name', ''),
+                'business_category': user_data.get('business_category', '')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        })
+
+
+@app.route('/settings')
+@login_required
+def settings():
+    """Display user settings page"""
+    return render_template('settings.html')
+
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    """Handle password change requests"""
+    def load_users():
+        users = {}
+        try:
+            if os.path.exists(app.config['USERS_FILE']):
+                with open(app.config['USERS_FILE'], 'r', encoding='utf-8') as f:
+                    users = json.load(f)
+        except Exception:
+            pass
+        return users
+
     def save_users(users):
         try:
             with open(app.config['USERS_FILE'], 'w', encoding='utf-8') as f:
@@ -718,46 +815,72 @@ def login():
         except Exception:
             pass
 
-    error = None
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        role = request.form.get('role')
-        if not username or not password:
-            error = 'Please provide username and password.'
-            return render_template('login.html', error=error)
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    username = session.get('user')
 
-        users = load_users()
-        user_entry = users.get(username)
-        if user_entry and 'password' in user_entry:
-            # stored as hashed password
-            if check_password_hash(user_entry['password'], password):
-                if role not in ['CEO', 'Company Analyst']:
-                    error = 'Invalid role selected.'
-                    return render_template('login.html', error=error)
-                    
-                # Set session variables
-                session['user'] = username
-                session['role'] = role
-                session['login_time'] = datetime.now().isoformat()
-                
-                # Redirect to index after successful login (regardless of role)
-                return redirect(url_for('home'))
-            else:
-                error = 'Invalid username or password.'
-                return render_template('login.html', error=error)
+    if not current_password or not new_password or not confirm_password:
+        flash('All fields are required.', 'danger')
+        return redirect(url_for('settings'))
 
-        # If no users configured or username not found, deny login (require registration)
-        error = 'Invalid username or password. Please register first.'
-        return render_template('login.html', error=error)
+    if new_password != confirm_password:
+        flash('New passwords do not match.', 'danger')
+        return redirect(url_for('settings'))
 
-    return render_template('login.html', error=error)
+    if len(new_password) < 6:
+        flash('Password must be at least 6 characters long.', 'danger')
+        return redirect(url_for('settings'))
+
+    users = load_users()
+    
+    if username not in users:
+        flash('User not found.', 'danger')
+        return redirect(url_for('settings'))
+
+    # Verify current password
+    if not check_password_hash(users[username]['password'], current_password):
+        flash('Current password is incorrect.', 'danger')
+        return redirect(url_for('settings'))
+
+    # Update password
+    users[username]['password'] = generate_password_hash(new_password)
+    save_users(users)
+
+    flash('Password updated successfully!', 'success')
+    return redirect(url_for('settings'))
 
 
-@app.route('/logout')
-def logout():
-    # Clear all session data
+@app.route('/delete_account')
+@login_required
+def delete_account():
+    """Delete user account"""
+    def load_users():
+        users = {}
+        try:
+            if os.path.exists(app.config['USERS_FILE']):
+                with open(app.config['USERS_FILE'], 'r', encoding='utf-8') as f:
+                    users = json.load(f)
+        except Exception:
+            pass
+        return users
+
+    def save_users(users):
+        try:
+            with open(app.config['USERS_FILE'], 'w', encoding='utf-8') as f:
+                json.dump(users, f, indent=2)
+        except Exception:
+            pass
+
+    username = session.get('user')
+    users = load_users()
+    
+    if username in users:
+        del users[username]
+        save_users(users)
+    
     session.clear()
+    flash('Your account has been deleted.', 'success')
     return redirect(url_for('login'))
 
 
@@ -1039,7 +1162,13 @@ def register():
     """Register new users and save them to a users.json file.
 
     The stored format is:
-      {"username": {"password": "<hashed>", "role": "CEO"}}
+      {"username": {
+          "password": "<hashed>", 
+          "role": "CEO", 
+          "email": "user@example.com",
+          "business_name": "ABC Corp",
+          "business_category": "Retail"
+      }}
     """
 
     def load_users():
@@ -1066,33 +1195,54 @@ def register():
 
     if request.method == 'POST':
         username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
         role = request.form.get('role')
+        business_name = request.form.get('business_name')
+        business_category = request.form.get('business_category')
 
-        if not username or not password or not role:
+        # Validation: Check all required fields
+        if not username or not email or not password or not role or not business_name or not business_category:
             error = 'Please fill all fields.'
             return render_template('register.html', error=error)
 
+        # Validate role
         if role not in ('CEO', 'Company Analyst'):
             error = 'Invalid role selected.'
             return render_template('register.html', error=error)
 
+        # Validate business category
+        valid_categories = [
+            'Retail', 'E-commerce', 'Technology', 'Healthcare', 'Finance', 
+            'Education', 'Hospitality', 'Real Estate', 'Manufacturing', 
+            'Professional Services', 'Food & Beverage', 'Transportation', 
+            'Media', 'Telecommunications', 'Other'
+        ]
+        if business_category not in valid_categories:
+            error = 'Invalid business category selected.'
+            return render_template('register.html', error=error)
+
         users = load_users()
+        
+        # Check if username already exists
         if username in users:
             error = 'Username already exists. Choose another.'
             return render_template('register.html', error=error)
 
-        # Save new user
+        # Save new user with additional business information
         hashed = generate_password_hash(password)
-        users[username] = {'password': hashed, 'role': role}
+        users[username] = {
+            'password': hashed, 
+            'role': role,
+            'email': email,
+            'business_name': business_name,
+            'business_category': business_category
+        }
         save_users(users)
 
-        # Set session and redirect to index
-        session['user'] = username
-        session['role'] = role
-        session['login_time'] = datetime.now().isoformat()
-
-        return redirect(url_for('home'))
+        # Redirect to login page with success message
+        flash('Account created successfully! Please login with your credentials.', 'success')
+        return redirect(url_for('login'))
 
     # GET request: just render registration form
     return render_template('register.html', error=None)
@@ -2503,6 +2653,132 @@ def download_results(filename):
     except FileNotFoundError:
         return "File not found", 404
 
+
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    """Handle forgot password requests - displays user's current password (hashed) or allows reset"""
+    
+    def load_users():
+        users = app.config.get('USERS')
+        if users is None:
+            users = {}
+            try:
+                if os.path.exists(app.config['USERS_FILE']):
+                    with open(app.config['USERS_FILE'], 'r', encoding='utf-8') as f:
+                        users = json.load(f)
+            except Exception:
+                users = {}
+            app.config['USERS'] = users
+        return app.config['USERS']
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+
+        if not username or not email:
+            from flask import flash
+            flash('Please fill all fields.', 'danger')
+            return render_template('forgot_password.html')
+
+        users = load_users()
+
+        # Check if user exists
+        if username not in users:
+            from flask import flash
+            flash('User not found. Please check your username.', 'danger')
+            return render_template('forgot_password.html')
+
+        user_data = users[username]
+
+        # Verify email matches (if email exists in user data)
+        if 'email' in user_data and user_data['email'].lower() != email.lower():
+            from flask import flash
+            flash('Email does not match our records.', 'danger')
+            return render_template('forgot_password.html')
+
+        # Since we don't have email functionality set up, we'll provide instructions
+        # In a production environment, you would send a reset link via email
+        from flask import flash
+        flash(f'Password reset instructions: Please contact your administrator or use the password reset page.', 'info')
+        flash(f'Username: {username} | Email: {email}', 'info')
+        reset_link = url_for('reset_password', _external=False)
+        flash(Markup(f'Click <a href="{reset_link}" style="color: #166534; font-weight: 600; text-decoration: underline;">here to reset your password</a> directly.'), 'success')
+        
+        return render_template('forgot_password.html')
+
+    # GET request: render forgot password form
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    """Allow users to reset their password directly"""
+    
+    def load_users():
+        users = app.config.get('USERS')
+        if users is None:
+            users = {}
+            try:
+                if os.path.exists(app.config['USERS_FILE']):
+                    with open(app.config['USERS_FILE'], 'r', encoding='utf-8') as f:
+                        users = json.load(f)
+            except Exception:
+                users = {}
+            app.config['USERS'] = users
+        return app.config['USERS']
+
+    def save_users(users):
+        try:
+            with open(app.config['USERS_FILE'], 'w', encoding='utf-8') as f:
+                json.dump(users, f, indent=2)
+            app.config['USERS'] = users
+        except Exception:
+            pass
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not username or not email or not new_password or not confirm_password:
+            from flask import flash
+            flash('Please fill all fields.', 'danger')
+            return render_template('reset_password.html')
+
+        if new_password != confirm_password:
+            from flask import flash
+            flash('Passwords do not match.', 'danger')
+            return render_template('reset_password.html')
+
+        users = load_users()
+
+        # Check if user exists
+        if username not in users:
+            from flask import flash
+            flash('User not found.', 'danger')
+            return render_template('reset_password.html')
+
+        user_data = users[username]
+
+        # Verify email matches
+        if 'email' in user_data and user_data['email'].lower() != email.lower():
+            from flask import flash
+            flash('Email does not match our records.', 'danger')
+            return render_template('reset_password.html')
+
+        # Update password
+        user_data['password'] = generate_password_hash(new_password)
+        users[username] = user_data
+        save_users(users)
+
+        from flask import flash
+        flash('Password successfully reset! You can now login with your new password.', 'success')
+        return redirect(url_for('login'))
+
+    # GET request
+    return render_template('reset_password.html')
 
 
 if __name__ == '__main__':

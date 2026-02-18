@@ -387,64 +387,6 @@
         .examples-inline-grid { grid-template-columns: 1fr; }
     }
 
-    /* ── Recent Questions ── */
-    .clear-recent-btn {
-        margin-left: auto;
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        cursor: pointer;
-        font-size: 0.7rem;
-        padding: 2px 4px;
-        border-radius: 4px;
-        transition: color 0.15s;
-        line-height: 1;
-    }
-
-    .clear-recent-btn:hover { color: #dc2626; }
-
-    .recent-item {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0.55rem 0.75rem;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        margin-bottom: 0.45rem;
-        cursor: pointer;
-        transition: all 0.15s;
-        background: var(--bg-user-info);
-    }
-
-    .recent-item:last-child { margin-bottom: 0; }
-
-    .recent-item:hover {
-        border-color: #2563eb;
-        background: var(--bg-nav-active);
-        transform: translateX(3px);
-    }
-
-    .recent-item i { color: var(--text-muted); font-size: 0.68rem; flex-shrink: 0; }
-    .recent-item:hover i { color: #2563eb; }
-
-    .recent-item span {
-        font-size: 0.82rem;
-        color: var(--text-secondary);
-        line-height: 1.3;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .recent-item:hover span { color: var(--text-primary); }
-
-    .recent-empty {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        text-align: center;
-        padding: 0.5rem 0;
-    }
-
     .d-none { display: none !important; }
 
     @media (max-width: 860px) {
@@ -558,17 +500,6 @@
                 <div class="tip-row"><i class="fas fa-check-circle"></i><span>Click any example query to auto-fill</span></div>
                 <div class="tip-row"><i class="fas fa-check-circle"></i><span>Use Ctrl+Enter to submit quickly</span></div>
             </div>
-
-            <!-- Recent Questions -->
-            <div class="sidebar-card" id="recentCard" style="display:none;">
-                <div class="sidebar-card-title">
-                    <i class="fas fa-history"></i> Recent Questions
-                    <button class="clear-recent-btn" onclick="clearRecent()" title="Clear history">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-                <div id="recentList"></div>
-            </div>
         </div>
 
     </div>
@@ -605,7 +536,6 @@ function submitQuery() {
             document.getElementById('errorContent').textContent = data.error;
             document.getElementById('errorArea').classList.remove('d-none');
         } else {
-            saveRecent(query);
             document.getElementById('responseContent').innerHTML = formatAIResponse(data.result);
             document.getElementById('responseArea').classList.remove('d-none');
             const ta = document.getElementById('queryInput');
@@ -628,52 +558,6 @@ function formatAIResponse(text) {
     return '<p>' + f + '</p>';
 }
 
-/* ── Recent Questions ── */
-const RECENT_KEY = 'ml_recent_questions';
-const MAX_RECENT = 6;
-
-function getRecent() {
-    try { return JSON.parse(sessionStorage.getItem(RECENT_KEY)) || []; }
-    catch { return []; }
-}
-
-function saveRecent(query) {
-    let recent = getRecent().filter(q => q !== query); // remove duplicate
-    recent.unshift(query);                             // add to top
-    if (recent.length > MAX_RECENT) recent = recent.slice(0, MAX_RECENT);
-    sessionStorage.setItem(RECENT_KEY, JSON.stringify(recent));
-    renderRecent();
-}
-
-function clearRecent() {
-    sessionStorage.removeItem(RECENT_KEY);
-    renderRecent();
-}
-
-function renderRecent() {
-    const recent = getRecent();
-    const card   = document.getElementById('recentCard');
-    const list   = document.getElementById('recentList');
-
-    if (recent.length === 0) {
-        card.style.display = 'none';
-        return;
-    }
-
-    card.style.display = 'block';
-    list.innerHTML = recent.map(q => `
-        <div class="recent-item" onclick="setQuery(${JSON.stringify(q)})">
-            <i class="fas fa-clock"></i>
-            <span>${q}</span>
-        </div>
-    `).join('');
-}
-
-window.addEventListener('load', () => {
-    document.getElementById('queryInput').focus();
-    renderRecent();
-});
-
 function resetForm() {
     const ta = document.getElementById('queryInput');
     ta.value = '';
@@ -691,5 +575,7 @@ document.getElementById('queryInput').addEventListener('input', function() {
 document.getElementById('queryInput').addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') submitQuery();
 });
+
+window.addEventListener('load', () => document.getElementById('queryInput').focus());
 </script>
 {% endblock %}
