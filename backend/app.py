@@ -1295,15 +1295,110 @@ def home():
 @app.route('/overview')
 def overview_analysis():
     error = None
-    raw_data = None
+    summary = None
+    charts = {}
+    month_list = []
+    selected_month = request.args.get('month', 'All')
+
     if 'last_uploaded_file_id' in session and session['last_uploaded_file_id'] in uploaded_data:
-        df = uploaded_data[session['last_uploaded_file_id']]
+        df = uploaded_data[session['last_uploaded_file_id']].copy()
         print(f"Columns available in overview: {df.columns.tolist()}")
-        raw_data = df  # Assign full DataFrame without truncation
+
+        # ── Month filtering ──────────────────────────────────────────
+        time_column = None
+        for col in ['OrderDate', 'PurchaseDate', 'Date']:
+            if col in df.columns:
+                time_column = col
+                break
+
+        if time_column:
+            df[time_column] = pd.to_datetime(df[time_column], errors='coerce')
+            df.dropna(subset=[time_column], inplace=True)
+            df['Month'] = df[time_column].dt.to_period('M').astype(str)
+            month_list = sorted(df['Month'].unique().tolist())
+            if selected_month != 'All':
+                df = df[df['Month'] == selected_month]
+
+        # ── Summary statistics ───────────────────────────────────────
+        total_customers = df['CustomerID'].nunique() if 'CustomerID' in df.columns else len(df)
+        avg_spending = round(df['Spending_Score'].mean(), 2) if 'Spending_Score' in df.columns else 'N/A'
+        avg_income = round(df['Annual_Income'].mean(), 2) if 'Annual_Income' in df.columns else 'N/A'
+
+        most_common_region = None
+        for region_col in ['Region', 'City', 'Location', 'Country']:
+            if region_col in df.columns:
+                most_common_region = df[region_col].mode()[0] if not df[region_col].mode().empty else None
+                break
+
+        summary = {
+            'total_customers': total_customers,
+            'avg_spending': avg_spending,
+            'avg_income': avg_income,
+            'most_common_region': most_common_region,
+        }
+
+        # ── Charts ──────────────────────────────────────────────────
+        try:
+            # Pie chart: Customer Segment Distribution
+            if 'Segment' in df.columns:
+                fig = px.pie(df, names='Segment', title='Customer Segment Distribution')
+                charts['Customer Segment Distribution'] = to_html(fig, full_html=False)
+
+            # Bar chart: Avg Spending Score by Segment
+            if 'Segment' in df.columns and 'Spending_Score' in df.columns:
+                bar_df = df.groupby('Segment')['Spending_Score'].mean().reset_index()
+                fig = px.bar(bar_df, x='Segment', y='Spending_Score', title='Avg Spending Score by Segment',
+                             color='Segment')
+                charts['Avg Spending Score by Segment'] = to_html(fig, full_html=False)
+
+            # Bar chart: Avg Income by Segment
+            if 'Segment' in df.columns and 'Annual_Income' in df.columns:
+                income_df = df.groupby('Segment')['Annual_Income'].mean().reset_index()
+                fig = px.bar(income_df, x='Segment', y='Annual_Income', title='Avg Annual Income by Segment',
+                             color='Segment')
+                charts['Avg Annual Income by Segment'] = to_html(fig, full_html=False)
+
+            # Line chart: Spending Score over time
+            if time_column and 'Spending_Score' in df.columns:
+                df_sorted = df.sort_values(time_column)
+                if not df_sorted[time_column].isnull().all():
+                    fig = px.line(df_sorted, x=time_column, y='Spending_Score',
+                                  title='Spending Score Over Time')
+                    charts['Spending Score Over Time'] = to_html(fig, full_html=False)
+
+            # Scatter: Income vs Spending Score
+            if 'Annual_Income' in df.columns and 'Spending_Score' in df.columns:
+                fig = px.scatter(df, x='Annual_Income', y='Spending_Score',
+                                 color='Segment' if 'Segment' in df.columns else None,
+                                 title='Income vs Spending Score')
+                charts['Income vs Spending Score'] = to_html(fig, full_html=False)
+
+            # Bar: Top regions by customer count
+            for region_col in ['Region', 'City', 'Location', 'Country']:
+                if region_col in df.columns:
+                    region_df = df[region_col].value_counts().reset_index()
+                    region_df.columns = [region_col, 'Count']
+                    fig = px.bar(region_df.head(10), x=region_col, y='Count',
+                                 title=f'Top 10 {region_col}s by Customer Count', color=region_col)
+                    charts[f'Top {region_col}s'] = to_html(fig, full_html=False)
+                    break
+
+        except Exception as chart_error:
+            print(f"Chart generation error: {chart_error}")
+
+        if not charts:
+            error = "Charts could not be generated. Please ensure your CSV has columns like Segment, Spending_Score, Annual_Income, or OrderDate."
+
     else:
         error = "No data available. Please upload a CSV file first."
         print(f"Error in overview: {error}")
-    return render_template('overview.html', error=error, raw_data=raw_data)
+
+    return render_template('overview.html',
+                           error=error,
+                           summary=summary,
+                           charts=charts,
+                           month_list=month_list,
+                           selected_month=selected_month)
 
 @app.route('/demographic_trends', endpoint='demographic_trends_analysis')
 @login_required
